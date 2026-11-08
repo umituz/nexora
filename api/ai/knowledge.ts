@@ -2,7 +2,7 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
 import { documents, documentChunks, usageRecords, tn } from '../schema'
 import type { Db, Env } from '../env'
-import { buildUsageData, chunkText, CHUNK_TEXT_LIMIT } from '@umituz/web-ai'
+import { batchEmbed, buildUsageData, chunkText, CHUNK_TEXT_LIMIT } from '@umituz/web-ai'
 import { resolveEmbeddingModel } from './model-registry'
 import { embeddingsAdapterFor, type EmbeddingsAdapter } from './providers'
 
@@ -37,19 +37,7 @@ export async function embedTexts(
   adapterOverride?: EmbeddingsAdapter,
 ): Promise<{ vectors: number[][]; inputTokens: number | null }> {
   const adapter = adapterOverride ?? embeddingsAdapterFor(env, provider)
-  const vectors: number[][] = []
-  let inputTokens = 0
-  let sawTokens = false
-  for (let offset = 0; offset < texts.length; offset += EMBED_BATCH_SIZE) {
-    const batch = texts.slice(offset, offset + EMBED_BATCH_SIZE)
-    const result = await adapter.embed({ externalModelId, input: batch })
-    vectors.push(...result.vectors)
-    if (result.inputTokens !== null) {
-      inputTokens += result.inputTokens
-      sawTokens = true
-    }
-  }
-  return { vectors, inputTokens: sawTokens ? inputTokens : null }
+  return batchEmbed(adapter, externalModelId, texts, EMBED_BATCH_SIZE)
 }
 
 export async function createPendingDocument(db: Db, input: { userId: string; title: string }): Promise<IndexedDocument> {

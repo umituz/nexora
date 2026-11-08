@@ -7,30 +7,18 @@ import {
   normalizeSources,
   buildResearchMessages as baseBuildResearchMessages,
   accumulateReport,
-  RESEARCH_QUERY_MIN,
-  RESEARCH_QUERY_MAX,
   RESEARCH_MAX_OUTPUT_TOKENS,
   RESEARCH_TEMPERATURE,
   RESEARCH_REPORT_MIN_CHARS,
-  RESEARCH_SNIPPET_MAX_CHARS,
+  SEARCH_MAX_RESULTS,
+  searchWeb,
   type ResearchSource,
+  type WebSearchResult,
 } from '@umituz/web-ai'
 import { researchRuns, usageRecords } from '../schema'
 import type { Db, Env } from '../env'
 import { resolveModel } from './model-registry'
 import { adapterFor } from './providers'
-import { SEARCH_MAX_RESULTS, searchWeb, type WebSearchResult } from './search'
-
-export {
-  normalizeSources,
-  accumulateReport,
-  RESEARCH_QUERY_MIN,
-  RESEARCH_QUERY_MAX,
-  RESEARCH_MAX_OUTPUT_TOKENS,
-  RESEARCH_TEMPERATURE,
-  RESEARCH_REPORT_MIN_CHARS,
-  RESEARCH_SNIPPET_MAX_CHARS,
-}
 
 export interface ResearchRun {
   id: string

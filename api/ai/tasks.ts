@@ -1,10 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { uid } from '@umituz/web-hono'
-import {
-  canStartTask,
-  nextAttemptDelayMs,
-  planTaskFailure,
-} from '@umituz/web-ai'
+import { canStartTask, planTaskFailure } from '@umituz/web-ai'
 import { tasks, type TaskLogEntry, type TaskStatus } from '../schema'
 import type { Db, Env } from '../env'
 
@@ -26,10 +22,7 @@ export interface TaskRowLite {
   nextAttemptAt: string | null
 }
 
-export { nextAttemptDelayMs }
-export const canStart = canStartTask
-
-export function planFailure(
+function planFailure(
   row: Pick<TaskRowLite, 'attempts' | 'maxAttempts'>,
   message: string,
   backoffBaseMs: number,
@@ -135,7 +128,7 @@ export async function kickDueTasks(
   let kicked = 0
   for (const row of rows) {
     if (onlyTaskId && row.id !== onlyTaskId) continue
-    if (!canStart(row, now)) continue
+    if (!canStartTask(row, now)) continue
     kicked += 1
     waitUntil(runTask(db, env, row.id))
   }

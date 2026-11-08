@@ -1,11 +1,10 @@
 import { z } from 'zod'
 import { ApiError, uid } from '@umituz/web-hono'
-import { AiError, IMAGE_QUALITIES, IMAGE_SIZES } from '@umituz/web-ai'
+import { AiError, IMAGE_QUALITIES, IMAGE_SIZES, SEARCH_MAX_RESULTS, searchWeb } from '@umituz/web-ai'
 import { memories } from '../schema'
 import type { Db, Env } from '../env'
 import { generateArtifact } from './image-service'
 import { KNOWLEDGE_MAX_RESULTS, searchKnowledge } from './knowledge'
-import { SEARCH_MAX_RESULTS, searchWeb } from './search'
 
 export type ToolExecutionOutcome = { ok: true; result: Record<string, unknown> } | { ok: false; error: string }
 
