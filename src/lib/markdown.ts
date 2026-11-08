@@ -24,3 +24,17 @@ export function splitMarkdown(source: string): MarkdownSegment[] {
   }
   return segments
 }
+
+const TITLE_COMMENT_PREFIX = /^(?:\/\/|#|--|\/\*|<!--|\*)\s*/
+const TITLE_MAX_CHARS = 60
+
+export function deriveSnippetTitle(code: string): string {
+  const firstLine = code
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0)
+  if (!firstLine) return 'Snippet'
+  const stripped = firstLine.replace(TITLE_COMMENT_PREFIX, '').replace(/\*\/$/, '').trim()
+  const cleaned = stripped.length > 0 ? stripped : firstLine
+  return cleaned.length > TITLE_MAX_CHARS ? `${cleaned.slice(0, TITLE_MAX_CHARS)}…` : cleaned
+}

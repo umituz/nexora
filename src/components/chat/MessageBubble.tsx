@@ -19,6 +19,7 @@ export interface ChatMessageView {
 
 interface MessageBubbleProps {
   message: ChatMessageView
+  conversationId?: string
   onRegenerate?: () => void
   canRegenerate?: boolean
   onEdit?: () => void
@@ -30,6 +31,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({
   message,
+  conversationId,
   onRegenerate,
   canRegenerate = false,
   onEdit,
@@ -71,7 +73,7 @@ export function MessageBubble({
           }
         >
           {message.content.length > 0 ? (
-            <MessageContent content={message.content} />
+            <MessageContent content={message.content} conversationId={conversationId} />
           ) : message.status === 'streaming' ? (
             <span className="inline-block h-4 w-2 animate-pulse rounded-sm bg-muted-foreground/60" />
           ) : null}

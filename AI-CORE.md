@@ -364,6 +364,34 @@ mid-stream failures. Provider response bodies are logged server-side only.
   browser-verified poll pattern. **Live Tavily search is not verified in
   this workspace** — set `TAVILY_API_KEY` to activate it.
 
+## Code workspace (snippets, versions, diffs)
+
+- Multi-file context was already complete from earlier phases: a conversation
+  accepts any number of text-like attachments (multi-select upload, ≤2 MB
+  each, per-file extraction cap) and `execution.ts` loads every processed
+  attachment into the prompt as delimited, untrusted blocks.
+- Code snippets: `nexora_code_artifacts` (per-user title, normalized
+  language tag, content ≤100 K chars, optional conversation link,
+  `rootId`/`version` chain like image artifacts). Routes under
+  `/api/code-artifacts`: create (v1, or next version via `basedOnId` —
+  title, language, and conversation provenance inherit), list (DISTINCT ON
+  root, latest version per chain), get, versions, per-row soft delete
+  (deleting peels a chain one version at a time from the list view).
+- Chat integration: every fenced code block rendered in a conversation
+  gets a "Save snippet" action (auto-title from the first meaningful line,
+  fence language preserved) — saved blocks carry the conversation link and
+  show a "From chat" badge on the Code page.
+- Diffs: `src/lib/diff.ts` — pure LCS line diff (whole-block fallback
+  above 4 M cells), unit-tested; the Code page diffs any version against
+  its predecessor with added/removed counts.
+- **No execution**: generated or saved code is never executed server-side
+  or client-side; a sandbox requirement is documented in TODO for any
+  future run path.
+- Verification (2026-11-08): diff and title derivation unit-tested; CRUD,
+  version chaining (v1→v4 with inheritance), validation (blank content,
+  unknown conversation/basedOn 404s), and the Code page (list, version
+  dropdown, diff view with correct +/- counts) live-verified end-to-end.
+
 ## What stays out
 
 - No auto-executing tools yet: every seeded tool is `requiresApproval` and the

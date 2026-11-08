@@ -11,6 +11,7 @@ const MemoriesPage = lazy(() => import('@/pages/MemoriesPage'))
 const AgentsPage = lazy(() => import('@/pages/AgentsPage'))
 const KnowledgePage = lazy(() => import('@/pages/KnowledgePage'))
 const ResearchPage = lazy(() => import('@/pages/ResearchPage'))
+const CodePage = lazy(() => import('@/pages/CodePage'))
 const StudioPage = lazy(() => import('@/pages/StudioPage'))
 const UsagePage = lazy(() => import('@/pages/UsagePage'))
 const FeaturesPage = lazy(() => import('@/landing/FeaturesPage'))
@@ -39,6 +40,7 @@ export function AppRoutes(): ReactNode {
           <Route path="agents" element={<AgentsPage />} />
           <Route path="knowledge" element={<KnowledgePage />} />
           <Route path="research" element={<ResearchPage />} />
+          <Route path="code" element={<CodePage />} />
           <Route path="studio" element={<StudioPage />} />
           <Route path="usage" element={<UsagePage />} />
         </Route>

@@ -454,6 +454,7 @@ export default function ChatPage(): ReactNode {
             <MessageBubble
               key={message.id}
               message={message}
+              conversationId={active?.id}
               canRegenerate={lastAssistantComplete && index === messages.length - 1}
               onRegenerate={regenerate}
               canEdit={!streaming && !editing && message.role === 'user'}

@@ -139,6 +139,39 @@ export interface ResearchRunRow {
   createdAt: string
 }
 
+export interface CodeArtifactRow {
+  id: string
+  conversationId: string | null
+  title: string
+  language: string
+  rootId: string
+  version: number
+  charCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CodeArtifactVersionRow {
+  id: string
+  title: string
+  language: string
+  version: number
+  charCount: number
+  createdAt: string
+}
+
+export interface CodeArtifactFull {
+  id: string
+  conversationId: string | null
+  title: string
+  language: string
+  rootId: string
+  version: number
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface AgentRow {
   id: string
   userId: string

@@ -33,10 +33,12 @@ Cloudflare Worker (single origin)
 
 Postgres also carries the vector store: the `vector` extension (pgvector,
 one-time `CREATE EXTENSION vector`) backs `nexora_document_chunks.embeddings`
-with KNN retrieval, and the background task queue `nexora_tasks` (document
+with KNN retrieval, the background task queue `nexora_tasks` (document
 indexing and research runs with retries/backoff; kicked by request traffic
-since the Worker runs no cron). See AI-CORE.md → "Knowledge indexing and
-retrieval", "Research workflows with citations", and "Task engine".
+since the Worker runs no cron), and the versioned snippet store
+`nexora_code_artifacts` (chat-saved code with rootId/version chains and
+client-side diffs). See AI-CORE.md → "Knowledge indexing and retrieval",
+"Research workflows with citations", "Task engine", and "Code workspace".
 
 ## Repository layout (fleet standard)
 

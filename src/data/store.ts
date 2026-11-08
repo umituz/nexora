@@ -1,7 +1,17 @@
 import { createStore } from '@umituz/web-hono/store'
 import { makeStoreHooks } from '@umituz/web-hono/store/react'
 import type { PublicModel, UsageBreakdown, UsageSummary } from '@shared/ai/contracts'
-import type { AgentRow, ArtifactRow, ConversationRow, DocumentRow, MemoryRow, ProjectRow, ResearchRunRow, ToolRow } from './chatTypes'
+import type {
+  AgentRow,
+  ArtifactRow,
+  CodeArtifactRow,
+  ConversationRow,
+  DocumentRow,
+  MemoryRow,
+  ProjectRow,
+  ResearchRunRow,
+  ToolRow,
+} from './chatTypes'
 
 interface NexoraDatabase {
   conversations: ConversationRow[]
@@ -13,6 +23,7 @@ interface NexoraDatabase {
   tools: ToolRow[]
   documents: DocumentRow[]
   research: ResearchRunRow[]
+  codeArtifacts: CodeArtifactRow[]
   usage: UsageSummary
   usageBreakdown: UsageBreakdown
 }
@@ -28,6 +39,7 @@ export const store = createStore<NexoraDatabase>({
     tools: '/api/tools',
     documents: '/api/documents',
     research: '/api/research',
+    codeArtifacts: '/api/code-artifacts',
     usage: '/api/usage/summary',
     usageBreakdown: '/api/usage/breakdown',
   },
@@ -41,6 +53,7 @@ export const store = createStore<NexoraDatabase>({
     tools: [],
     documents: [],
     research: [],
+    codeArtifacts: [],
     usage: { requests: 0, inputTokens: 0, outputTokens: 0, costMicros: 0 },
     usageBreakdown: { models: [], conversations: [] },
   }),

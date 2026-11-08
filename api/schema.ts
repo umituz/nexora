@@ -370,3 +370,24 @@ export const researchRuns = pgTable(
   },
   (t) => [index(tn('research_runs_user_idx')).on(t.userId, t.createdAt)],
 )
+
+export const codeArtifacts = pgTable(
+  tn('code_artifacts'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    conversationId: text('conversation_id').references(() => conversations.id),
+    title: text('title').notNull(),
+    language: text('language').notNull().default('text'),
+    content: text('content').notNull(),
+    rootId: text('root_id').notNull(),
+    version: integer('version').notNull().default(1),
+    ...trio(),
+  },
+  (t) => [
+    index(tn('code_artifacts_user_idx')).on(t.userId, t.createdAt),
+    index(tn('code_artifacts_root_idx')).on(t.rootId, t.version),
+  ],
+)

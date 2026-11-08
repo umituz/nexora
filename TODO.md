@@ -83,9 +83,9 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Document indexing, embeddings, retrieval (pgvector on Neon — extension verified live 2026-11-08).
 - [x] Task engine foundation: status tracking, retries, logs.
 
-## Phase 7 — Code workspace
+## Phase 7 — Code workspace ✅
 
-- [ ] Code-focused workflows, multi-file context, diffs, artifacts. No server-side execution of
+- [x] Code-focused workflows, multi-file context, diffs, artifacts. No server-side execution of
       generated code without an isolated sandbox.
 
 ## Phase 8 — Multimodal

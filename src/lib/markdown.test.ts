@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { splitMarkdown } from './markdown'
+import { deriveSnippetTitle, splitMarkdown } from './markdown'
 
 describe('splitMarkdown', () => {
   it('returns a single text segment for plain prose', () => {
@@ -23,5 +23,22 @@ describe('splitMarkdown', () => {
   it('handles multiple consecutive fences', () => {
     const segments = splitMarkdown('```\na\n```\n```\nb\n```')
     expect(segments.filter((s) => s.kind === 'code')).toHaveLength(2)
+  })
+})
+
+describe('deriveSnippetTitle', () => {
+  it('derives from the first non-empty line', () => {
+    expect(deriveSnippetTitle('\n\nexport function useDebounce() {\n}')).toBe('export function useDebounce() {')
+  })
+
+  it('strips comment markers', () => {
+    expect(deriveSnippetTitle('// Debounce hook for inputs\nexport const x = 1')).toBe('Debounce hook for inputs')
+    expect(deriveSnippetTitle('# Python helper\nprint(1)')).toBe('Python helper')
+    expect(deriveSnippetTitle('/* SQL migration */\nSELECT 1;')).toBe('SQL migration')
+  })
+
+  it('caps long titles and falls back for empty code', () => {
+    expect(deriveSnippetTitle('x'.repeat(80))).toHaveLength(61)
+    expect(deriveSnippetTitle('   \n')).toBe('Snippet')
   })
 })
