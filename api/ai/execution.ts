@@ -15,6 +15,7 @@ import { attachments, conversations, messages, projects, usageRecords } from '..
 import { capText, TEXT_EXTRACT_TOTAL_LIMIT } from '../text-extract'
 import { AiError, errorFromUnknown } from './errors'
 import { buildContext } from './context-manager'
+import { loadMemories } from './memories'
 import { resolveModel, type ResolvedModel } from './model-registry'
 import { routeModelRequest, type RoutedRequest } from './model-router'
 import { buildSystemPrompt, type ProjectContext } from './prompt-engine'
@@ -160,6 +161,7 @@ async function* streamAnswer(input: GenerationInput, state: GenerationState): As
   const systemPrompt = buildSystemPrompt({
     settings: state.conversationSettings,
     project: state.project,
+    memories: await loadMemories(db, userId),
     attachments: await loadAttachmentTexts(db, conversationId),
   })
   const context = buildContext(history, systemPrompt, {

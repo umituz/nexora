@@ -83,9 +83,10 @@ aborts the upstream call, and persists partial output with status `stopped`.
   always ending with the newest user message; system prompt occupies the head.
 - Token estimation: characters/4 heuristic (no tokenizer dependency); budget checks
   against registry `context_window` minus requested `max_output_tokens`.
-- Phase 2 landed: project instructions and attachment text are prioritized context
-  segments assembled by the prompt engine (never ad-hoc concatenation in handlers).
-  Retrieved knowledge and memories follow the same pattern.
+- Phase 2 landed: project instructions, long-term memories (pinned-first, recency-ordered,
+  capped 20 items / 4 K chars), and attachment text are prioritized context segments
+  assembled by the prompt engine (never ad-hoc concatenation in handlers). Retrieved
+  knowledge follows the same pattern.
 
 ## Prompt engine
 
@@ -93,7 +94,7 @@ aborts the upstream call, and persists partial output with status `stopped`.
   assembled per request: base persona → conversation settings → project instructions →
   memories → attachment text blocks (delimited begin/end, capped).
 - Attachment content is untrusted data: injected inside delimited blocks, never treated
-  as system instructions.
+  as system instructions. Memories are user-authored facts surfaced as bullets.
 - Prompt text never lives in UI components or route handlers.
 
 ## Usage & cost

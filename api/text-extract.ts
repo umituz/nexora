@@ -31,7 +31,7 @@ export function extractText(bytes: Uint8Array): string {
   for (let offset = 0; offset < bytes.length; offset += chunkSize) {
     out += decoder.decode(bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)), { stream: offset + chunkSize < bytes.length })
   }
-  return out.replace(/\u0000/g, '')
+  return out.split('\u0000').join('')
 }
 
 export function capText(text: string, limit: number): string {

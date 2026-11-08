@@ -47,6 +47,17 @@ export interface AttachmentRow {
   createdAt: string
 }
 
+export interface MemoryRow {
+  id: string
+  userId: string
+  content: string
+  source: 'manual' | 'conversation'
+  conversationId: string | null
+  pinned: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export interface StreamCallbacks {
   onDelta: (channel: 'answer' | 'reasoning', text: string) => void
   onUsage?: (usage: TokenUsage) => void

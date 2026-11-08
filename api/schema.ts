@@ -155,3 +155,22 @@ export const attachments = pgTable(
   },
   (t) => [index(tn('attachments_conversation_idx')).on(t.conversationId, t.createdAt)],
 )
+
+export const MEMORY_SOURCES = ['manual', 'conversation'] as const
+export type MemorySource = (typeof MEMORY_SOURCES)[number]
+
+export const memories = pgTable(
+  tn('memories'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    content: text('content').notNull(),
+    source: text('source').$type<MemorySource>().notNull().default('manual'),
+    conversationId: text('conversation_id').references(() => conversations.id),
+    pinned: boolean('pinned').notNull().default(false),
+    ...trio(),
+  },
+  (t) => [index(tn('memories_user_idx')).on(t.userId, t.pinned, t.updatedAt)],
+)

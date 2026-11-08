@@ -54,9 +54,10 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Projects CRUD + project instructions + context boundary.
 - [x] File uploads (attachment metadata, processing states), conversation attachments
       (text extraction sync, base64 in Neon ≤2 MB, R2 documented as production path).
-- [ ] Memory engine (create/retrieve/update/delete, relevance, source tracking, user controls).
-- [x] Context manager integration: project instructions + attachments into request context
-      (memories pending the memory engine).
+- [x] Memory engine (create/retrieve/update/delete, pinned-first relevance, source
+      tracking, pin/delete user controls; Memories page).
+- [x] Context manager integration: project instructions + memories + attachments
+      into request context.
 
 ## Phase 3 — Multi-provider and advanced models
 

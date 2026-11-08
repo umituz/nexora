@@ -7,6 +7,7 @@ import LandingHomePage from '@/landing/LandingHomePage'
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const ChatPage = lazy(() => import('@/pages/ChatPage'))
 const ProjectsPage = lazy(() => import('@/pages/ProjectsPage'))
+const MemoriesPage = lazy(() => import('@/pages/MemoriesPage'))
 const UsagePage = lazy(() => import('@/pages/UsagePage'))
 const FeaturesPage = lazy(() => import('@/landing/FeaturesPage'))
 
@@ -30,6 +31,7 @@ export function AppRoutes(): ReactNode {
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:conversationId" element={<ChatPage />} />
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="memories" element={<MemoriesPage />} />
           <Route path="usage" element={<UsagePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
