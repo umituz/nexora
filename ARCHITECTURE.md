@@ -31,6 +31,10 @@ Cloudflare Worker (single origin)
        Neon Postgres (Drizzle, neon-http driver, TABLE_PREFIX `nexora`)
 ```
 
+Postgres also carries the vector store: the `vector` extension (pgvector,
+one-time `CREATE EXTENSION vector`) backs `nexora_document_chunks.embeddings`
+with KNN retrieval. See AI-CORE.md → "Knowledge indexing and retrieval".
+
 ## Repository layout (fleet standard)
 
 ```

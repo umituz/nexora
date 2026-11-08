@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, index, integer, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, jsonb, pgTable, text, uniqueIndex, vector } from 'drizzle-orm/pg-core'
 import { trio } from '@umituz/web-hono'
 import { authTables } from '@umituz/web-hono/auth'
 import type {
@@ -271,4 +271,40 @@ export const memories = pgTable(
     ...trio(),
   },
   (t) => [index(tn('memories_user_idx')).on(t.userId, t.pinned, t.updatedAt)],
+)
+
+export const EMBEDDING_DIMENSIONS = 1536
+
+export const documents = pgTable(
+  tn('documents'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    title: text('title').notNull(),
+    charCount: integer('char_count').notNull(),
+    chunkCount: integer('chunk_count').notNull(),
+    modelId: text('model_id').references(() => models.id),
+    ...trio(),
+  },
+  (t) => [index(tn('documents_user_idx')).on(t.userId, t.createdAt)],
+)
+
+export const documentChunks = pgTable(
+  tn('document_chunks'),
+  {
+    id: text('id').primaryKey(),
+    documentId: text('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    ordinal: integer('ordinal').notNull(),
+    text: text('text').notNull(),
+    embedding: vector('embedding', { dimensions: EMBEDDING_DIMENSIONS }).notNull(),
+    ...trio(),
+  },
+  (t) => [index(tn('document_chunks_document_idx')).on(t.documentId, t.ordinal)],
 )

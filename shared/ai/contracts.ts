@@ -42,6 +42,7 @@ export interface ModelCapabilities {
   structured: boolean
   reasoning: boolean
   vision: boolean
+  embeddings: boolean
 }
 
 export interface ModelPricing {

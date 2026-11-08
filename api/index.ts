@@ -8,6 +8,7 @@ import { attachmentsRouter } from './routes/attachments'
 import { artifactsRouter } from './routes/artifacts'
 import { agentsRouter } from './routes/agents'
 import { toolsRouter } from './routes/tools'
+import { documentsRouter } from './routes/documents'
 import { chatRouter } from './routes/chat'
 import { usageRouter } from './routes/usage'
 import { authRouter } from './auth'
@@ -26,6 +27,7 @@ export default createApi<Env>({
     ['/artifacts', artifactsRouter],
     ['/agents', agentsRouter],
     ['/tools', toolsRouter],
+    ['/documents', documentsRouter],
     ['/', chatRouter],
     ['/', attachmentsRouter],
     ['/usage', usageRouter],

@@ -4,6 +4,7 @@ import { memories } from '../schema'
 import type { Db, Env } from '../env'
 import { AiError } from './errors'
 import { generateArtifact } from './image-service'
+import { KNOWLEDGE_MAX_RESULTS, searchKnowledge } from './knowledge'
 import { IMAGE_QUALITIES, IMAGE_SIZES } from './providers/images'
 import { SEARCH_MAX_RESULTS, searchWeb } from './search'
 
@@ -26,10 +27,16 @@ const webSearchArgs = z.object({
   topic: z.enum(['general', 'news']).optional(),
 })
 
+const searchKnowledgeArgs = z.object({
+  query: z.string().min(1).max(400),
+  limit: z.number().int().min(1).max(KNOWLEDGE_MAX_RESULTS).optional(),
+})
+
 const ARG_SCHEMAS: Readonly<Record<string, z.ZodType>> = {
   generate_image: generateImageArgs,
   save_memory: saveMemoryArgs,
   web_search: webSearchArgs,
+  search_knowledge: searchKnowledgeArgs,
 }
 
 export function validateToolArgs(toolKey: string, args: Record<string, unknown>): { ok: true } | { ok: false; error: string } {
@@ -99,6 +106,27 @@ export async function executeToolCall(
           answer: response.answer,
           responseTime: response.responseTime,
           results: response.results.map((row) => ({ title: row.title, url: row.url, snippet: row.content })),
+        },
+      }
+    }
+
+    if (input.toolKey === 'search_knowledge') {
+      const args = searchKnowledgeArgs.parse(input.args)
+      const hits = await searchKnowledge(db, env, {
+        userId: input.userId,
+        query: args.query,
+        limit: args.limit,
+      })
+      return {
+        ok: true,
+        result: {
+          query: args.query,
+          results: hits.map((hit) => ({
+            documentTitle: hit.documentTitle,
+            chunk: hit.ordinal,
+            text: hit.text,
+            distance: Number(hit.distance.toFixed(4)),
+          })),
         },
       }
     }

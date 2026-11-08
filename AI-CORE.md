@@ -187,9 +187,10 @@ mid-stream failures. Provider response bodies are logged server-side only.
 
 - Tool registry (`nexora_tools`): seeded builtin tools with JSON-Schema
   parameters and a `requiresApproval` flag; read-only through `/api/tools`.
-  The three seeded tools map to implemented executors — `generate_image`
-  (artifact pipeline), `save_memory` (memory engine, `source: 'agent'`), and
-  `web_search` (Tavily-backed capability module, below).
+  The four seeded tools map to implemented executors — `generate_image`
+  (artifact pipeline), `save_memory` (memory engine, `source: 'agent'`),
+  `web_search` (Tavily-backed capability module, below), and
+  `search_knowledge` (pgvector retrieval, below).
   No tool is seeded before its executor exists.
 - Agents (`nexora_agents`): per-user name, description, standing instructions,
   an optional bound model (must produce text) and tool bindings validated
@@ -247,11 +248,47 @@ mid-stream failures. Provider response bodies are logged server-side only.
   recall as low-confidence). **Live search results are not verified in this
   workspace** — set `TAVILY_API_KEY` to activate them.
 
+## Knowledge indexing and retrieval (pgvector)
+
+- Store: `nexora_documents` (per-user title, char/chunk counts, embedding
+  model) and `nexora_document_chunks` (ordinal, text, `vector(1536)`
+  embedding). Requires the `vector` extension on Neon
+  (`CREATE EXTENSION vector` — one-time, already applied to this database;
+  verified live 2026-11-08).
+- `api/ai/chunker.ts` (pure): paragraph-aware splitting into ≤1200-char
+  chunks with 160-char carry overlap; sentence boundaries outrank newlines
+  outrank spaces, oversize hard-cuts as last resort.
+- `api/ai/providers/embeddings.ts`: OpenAI-wire embeddings adapter
+  (`POST {base}/embeddings`), reorders by index, rejects incomplete batches,
+  reuses the shared `AiError` mapping. Models declare
+  `capabilities.embeddings`; `resolveEmbeddingModel` picks the first
+  available one (seeded: OpenAI `text-embedding-3-small`, 1536 dims,
+  $0.02/MTok input). `embedTexts` batches at 32 inputs per call and records
+  usage with the standard cost pipeline.
+- `api/ai/knowledge.ts`: `indexDocument` (chunk → embed → insert, all or
+  nothing), `searchKnowledge` (embed query → pgvector KNN
+  `ORDER BY embedding <=> query LIMIT k`, user-scoped, soft-delete aware),
+  plus list/delete. Routes under `/api/documents` (list, create, search,
+  delete); the Knowledge page manages documents and offers a retrieval test
+  box. The `search_knowledge` builtin tool exposes retrieval to agents
+  through the approval-gated loop.
+- Verification tier (2026-11-08): chunker, adapter, and batching are
+  unit-tested; the **full pipeline is live-verified against a local stub
+  OpenAI-wire embeddings server with real pgvector KNN on Neon** (document
+  → 5 chunks → vectors stored; "payroll" query ranks payroll chunks at
+  distance 0, onboarding chunks last, and vice versa; UI indexing and
+  retrieval box verified in the browser). Without an embedding provider key
+  every surface fails gracefully with 503 "No embedding model is configured
+  for this workspace" (live-verified). **Live OpenAI embeddings are not
+  verified in this workspace** — set `OPENAI_API_KEY` to activate them.
+
 ## What stays out
 
 - No auto-executing tools yet: every seeded tool is `requiresApproval` and the
   runtime pauses each call for an explicit approve/reject. A no-approval fast
   path would run inside the same executor and history pipeline when needed.
-- No embeddings/RAG yet (Phase 6; pgvector verified on Neon 2026-11-08 —
-  extension installs, KNN `<->` queries work).
+- Retrieved chunks are not auto-injected into prompts: knowledge reaches the
+  model through the approval-gated `search_knowledge` tool, keeping every
+  retrieval visible to the user. A RAG auto-context path would reuse
+  `searchKnowledge` behind the same context-manager budget.
 - Generated code is never executed server-side (future sandbox requirement documented in TODO).

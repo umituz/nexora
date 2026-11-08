@@ -64,8 +64,9 @@ const SEED_PROVIDERS: SeedProvider[] = [
   },
 ]
 
-const CHAT: ModelCapabilities = { streaming: true, tools: true, structured: true, reasoning: true, vision: false }
-const IMAGE: ModelCapabilities = { streaming: false, tools: false, structured: false, reasoning: false, vision: false }
+const CHAT: ModelCapabilities = { streaming: true, tools: true, structured: true, reasoning: true, vision: false, embeddings: false }
+const IMAGE: ModelCapabilities = { streaming: false, tools: false, structured: false, reasoning: false, vision: false, embeddings: false }
+const EMBEDDINGS: ModelCapabilities = { streaming: false, tools: false, structured: false, reasoning: false, vision: false, embeddings: true }
 
 const SEED_TOOLS: SeedTool[] = [
   {
@@ -122,6 +123,24 @@ const SEED_TOOLS: SeedTool[] = [
     requiresApproval: true,
     sortOrder: 30,
   },
+  {
+    id: 'tool_search_knowledge',
+    key: 'search_knowledge',
+    name: 'Search knowledge',
+    description:
+      'Retrieves the most relevant passages from the documents indexed in this workspace. Use it before answering questions about the user’s own material.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'What to look for in the indexed documents.' },
+        limit: { type: 'number', description: 'How many passages to return, 1 to 8.' },
+      },
+      required: ['query'],
+      additionalProperties: false,
+    },
+    requiresApproval: true,
+    sortOrder: 40,
+  },
 ]
 
 const SEED_MODELS: SeedModel[] = [
@@ -164,7 +183,7 @@ const SEED_MODELS: SeedModel[] = [
     displayName: 'Qwen3.8 27B',
     family: 'qwen',
     description: 'Multimodal model from the Qwen family; accepts text and images.',
-    capabilities: { streaming: true, tools: true, structured: false, reasoning: true, vision: true },
+    capabilities: { streaming: true, tools: true, structured: false, reasoning: true, vision: true, embeddings: false },
     inputTypes: ['text', 'image'],
     outputTypes: ['text'],
     contextWindow: 131072,
@@ -300,6 +319,22 @@ const SEED_MODELS: SeedModel[] = [
     pricing: { inputPerMTok: 5, outputPerMTok: 30, currency: 'USD' },
     isDefault: false,
     sortOrder: 110,
+  },
+  {
+    id: 'model_text_embedding_3_small',
+    providerId: 'provider_openai',
+    externalId: 'text-embedding-3-small',
+    displayName: 'Text Embedding 3 Small',
+    family: 'text-embedding',
+    description: 'Dense 1536-dimension embeddings for document indexing and semantic retrieval.',
+    capabilities: EMBEDDINGS,
+    inputTypes: ['text'],
+    outputTypes: [],
+    contextWindow: 8191,
+    maxOutputTokens: 0,
+    pricing: { inputPerMTok: 0.02, outputPerMTok: 0, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 120,
   },
 ]
 

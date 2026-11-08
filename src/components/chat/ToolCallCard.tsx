@@ -28,6 +28,9 @@ function describeArgs(toolCall: PublicToolCall): string {
   if (toolCall.toolKey === 'web_search' && typeof toolCall.args.query === 'string') {
     return toolCall.args.query
   }
+  if (toolCall.toolKey === 'search_knowledge' && typeof toolCall.args.query === 'string') {
+    return toolCall.args.query
+  }
   return JSON.stringify(toolCall.args)
 }
 
@@ -38,12 +41,13 @@ function describeResult(toolCall: PublicToolCall): string | null {
     if (toolCall.toolKey === 'generate_image' && typeof toolCall.result.imageUrl === 'string') {
       return toolCall.result.imageUrl
     }
-    if (toolCall.toolKey === 'web_search' && Array.isArray(toolCall.result.results)) {
-      const urls = toolCall.result.results
+    if ((toolCall.toolKey === 'web_search' || toolCall.toolKey === 'search_knowledge') && Array.isArray(toolCall.result.results)) {
+      const key = toolCall.toolKey === 'web_search' ? 'url' : 'documentTitle'
+      const lines = toolCall.result.results
         .slice(0, 3)
-        .map((row) => (typeof row?.url === 'string' ? row.url : ''))
+        .map((row) => (typeof row?.[key] === 'string' ? (row[key] as string) : ''))
         .filter(Boolean)
-      return urls.length > 0 ? urls.join('\n') : null
+      return lines.length > 0 ? lines.join('\n') : null
     }
     return JSON.stringify(toolCall.result)
   }

@@ -12,7 +12,7 @@ function resolved(providerId: string, overrides: Partial<ResolvedModel['model']>
       displayName: providerId,
       family: 'test',
       description: null,
-      capabilities: { streaming: true, tools: false, structured: false, reasoning: false, vision: false },
+      capabilities: { streaming: true, tools: false, structured: false, reasoning: false, vision: false, embeddings: false },
       inputTypes: ['text'],
       outputTypes: ['text'],
       contextWindow: 131072,
@@ -54,7 +54,7 @@ describe('failoverCandidate', () => {
     expect(failoverCandidate(resolved('provider_a'), resolved('provider_a'))).toBeNull()
     expect(failoverCandidate(resolved('provider_a'), null)).toBeNull()
     expect(
-      failoverCandidate(resolved('provider_a'), resolved('provider_b', { capabilities: { streaming: false, tools: false, structured: false, reasoning: false, vision: false } })),
+      failoverCandidate(resolved('provider_a'), resolved('provider_b', { capabilities: { streaming: false, tools: false, structured: false, reasoning: false, vision: false, embeddings: false } })),
     ).toBeNull()
   })
 })

@@ -1,0 +1,206 @@
+import { and, desc, eq, isNull, sql } from 'drizzle-orm'
+import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
+import { documents, documentChunks, usageRecords, tn } from '../schema'
+import type { Db, Env } from '../env'
+import { chunkText, CHUNK_TEXT_LIMIT } from './chunker'
+import { resolveEmbeddingModel } from './model-registry'
+import { embeddingsAdapterFor, type EmbeddingsAdapter } from './providers'
+import { buildUsageData } from './usage'
+
+export const KNOWLEDGE_MAX_RESULTS = 8
+const EMBED_BATCH_SIZE = 32
+
+export interface IndexedDocument {
+  id: string
+  title: string
+  charCount: number
+  chunkCount: number
+  modelId: string | null
+  createdAt: Date
+}
+
+export interface KnowledgeHit {
+  chunkId: string
+  documentId: string
+  documentTitle: string
+  ordinal: number
+  text: string
+  distance: number
+}
+
+interface IndexDocumentInput {
+  userId: string
+  title: string
+  text: string
+  modelId?: string | null
+}
+
+export async function embedTexts(
+  env: Env,
+  provider: { adapter: string; baseUrl: string; apiKeyEnv: string },
+  externalModelId: string,
+  texts: string[],
+  adapterOverride?: EmbeddingsAdapter,
+): Promise<{ vectors: number[][]; inputTokens: number | null }> {
+  const adapter = adapterOverride ?? embeddingsAdapterFor(env, provider)
+  const vectors: number[][] = []
+  let inputTokens = 0
+  let sawTokens = false
+  for (let offset = 0; offset < texts.length; offset += EMBED_BATCH_SIZE) {
+    const batch = texts.slice(offset, offset + EMBED_BATCH_SIZE)
+    const result = await adapter.embed({ externalModelId, input: batch })
+    vectors.push(...result.vectors)
+    if (result.inputTokens !== null) {
+      inputTokens += result.inputTokens
+      sawTokens = true
+    }
+  }
+  return { vectors, inputTokens: sawTokens ? inputTokens : null }
+}
+
+export async function indexDocument(
+  db: Db,
+  env: Env,
+  input: IndexDocumentInput,
+  adapterOverride?: EmbeddingsAdapter,
+): Promise<IndexedDocument> {
+  if (input.text.length > CHUNK_TEXT_LIMIT) {
+    throw ApiError.badRequest(`Document text exceeds ${CHUNK_TEXT_LIMIT} characters`)
+  }
+
+  const chunks = chunkText(input.text)
+  if (chunks.length === 0) throw ApiError.badRequest('Document text is empty after processing')
+
+  const resolved = await resolveEmbeddingModel(db, env, input.modelId ?? null)
+  const startedAt = Date.now()
+  const { vectors, inputTokens } = await embedTexts(
+    env,
+    resolved.provider,
+    resolved.model.externalId,
+    chunks,
+    adapterOverride,
+  )
+  const durationMs = Date.now() - startedAt
+
+  const documentId = uid('doc')
+  const [document] = await db
+    .insert(documents)
+    .values({
+      id: documentId,
+      userId: input.userId,
+      title: input.title,
+      charCount: input.text.length,
+      chunkCount: chunks.length,
+      modelId: resolved.model.id,
+    })
+    .returning({
+      id: documents.id,
+      title: documents.title,
+      charCount: documents.charCount,
+      chunkCount: documents.chunkCount,
+      modelId: documents.modelId,
+      createdAt: documents.createdAt,
+    })
+
+  await db.insert(documentChunks).values(
+    chunks.map((text, ordinal) => ({
+      id: uid('chk'),
+      documentId,
+      userId: input.userId,
+      ordinal,
+      text,
+      embedding: vectors[ordinal],
+    })),
+  )
+
+  if (inputTokens !== null && inputTokens > 0) {
+    await db.insert(usageRecords).values({
+      id: uid('usage'),
+      userId: input.userId,
+      conversationId: null,
+      messageId: null,
+      providerId: resolved.provider.id,
+      model: resolved.model.displayName,
+      ...buildUsageData({
+        usage: { inputTokens, outputTokens: 0 },
+        pricing: resolved.model.pricing,
+        durationMs,
+      }),
+      status: 'complete',
+    })
+  }
+
+  return document
+}
+
+interface RawHit {
+  chunk_id: string
+  document_id: string
+  title: string
+  ordinal: number
+  text: string
+  distance: number
+}
+
+export async function searchKnowledge(
+  db: Db,
+  env: Env,
+  input: { userId: string; query: string; limit?: number; modelId?: string | null },
+  adapterOverride?: EmbeddingsAdapter,
+): Promise<KnowledgeHit[]> {
+  const limit = Math.min(Math.max(Math.trunc(input.limit ?? KNOWLEDGE_MAX_RESULTS), 1), KNOWLEDGE_MAX_RESULTS)
+  const resolved = await resolveEmbeddingModel(db, env, input.modelId ?? null)
+  const { vectors } = await embedTexts(env, resolved.provider, resolved.model.externalId, [input.query], adapterOverride)
+
+  const literal = JSON.stringify(vectors[0])
+  const result = await db.execute(sql`
+    SELECT c.id AS chunk_id, c.document_id, d.title, c.ordinal, c.text,
+           c.embedding <=> ${literal}::vector AS distance
+    FROM ${sql.raw(tn('document_chunks'))} c
+    JOIN ${sql.raw(tn('documents'))} d ON d.id = c.document_id
+    WHERE c.user_id = ${input.userId} AND d.deleted_at IS NULL
+    ORDER BY c.embedding <=> ${literal}::vector
+    LIMIT ${limit}
+  `)
+
+  const rows = (result as unknown as { rows: RawHit[] }).rows ?? []
+  return rows.map((row) => ({
+    chunkId: row.chunk_id,
+    documentId: row.document_id,
+    documentTitle: row.title,
+    ordinal: row.ordinal,
+    text: row.text,
+    distance: Number(row.distance),
+  }))
+}
+
+export async function listDocuments(db: Db, userId: string): Promise<IndexedDocument[]> {
+  return db
+    .select({
+      id: documents.id,
+      title: documents.title,
+      charCount: documents.charCount,
+      chunkCount: documents.chunkCount,
+      modelId: documents.modelId,
+      createdAt: documents.createdAt,
+    })
+    .from(documents)
+    .where(and(eq(documents.userId, userId), isNull(documents.deletedAt)))
+    .orderBy(desc(documents.createdAt))
+}
+
+export async function deleteDocument(db: Db, userId: string, id: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: documents.id })
+    .from(documents)
+    .where(and(eq(documents.id, id), eq(documents.userId, userId), isNull(documents.deletedAt)))
+    .limit(1)
+  if (!row) return false
+
+  await db.delete(documentChunks).where(eq(documentChunks.documentId, id))
+  await db
+    .update(documents)
+    .set({ deletedAt: new Date(), ...stampUpdate(documents) })
+    .where(eq(documents.id, id))
+  return true
+}

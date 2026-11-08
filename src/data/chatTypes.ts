@@ -94,6 +94,24 @@ export interface ToolRow {
   requiresApproval: boolean
 }
 
+export interface DocumentRow {
+  id: string
+  title: string
+  charCount: number
+  chunkCount: number
+  modelId: string | null
+  createdAt: string
+}
+
+export interface KnowledgeHitRow {
+  chunkId: string
+  documentId: string
+  documentTitle: string
+  ordinal: number
+  text: string
+  distance: number
+}
+
 export interface AgentRow {
   id: string
   userId: string

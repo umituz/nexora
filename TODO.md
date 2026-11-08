@@ -80,7 +80,7 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 
 - [x] Web search integration (capability module, not coupled to chat engine).
 - [ ] Research workflows with citations.
-- [ ] Document indexing, embeddings, retrieval (pgvector on Neon — verify extension support).
+- [x] Document indexing, embeddings, retrieval (pgvector on Neon — extension verified live 2026-11-08).
 - [ ] Task engine foundation: status tracking, retries, logs.
 
 ## Phase 7 — Code workspace

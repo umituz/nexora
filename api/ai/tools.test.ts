@@ -39,6 +39,13 @@ describe('validateToolArgs', () => {
     expect(validateToolArgs('web_search', { query: '' }).ok).toBe(false)
   })
 
+  it('accepts a valid search_knowledge payload and rejects an oversized limit', () => {
+    expect(validateToolArgs('search_knowledge', { query: 'vacation policy', limit: 4 })).toEqual({ ok: true })
+    expect(validateToolArgs('search_knowledge', { query: 'vacation policy' })).toEqual({ ok: true })
+    expect(validateToolArgs('search_knowledge', { query: 'q', limit: 12 }).ok).toBe(false)
+    expect(validateToolArgs('search_knowledge', { query: '' }).ok).toBe(false)
+  })
+
   it('rejects unknown tool keys outright', () => {
     const outcome = validateToolArgs('run_shell', { command: 'rm -rf /' })
     expect(outcome.ok).toBe(false)

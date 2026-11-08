@@ -46,7 +46,7 @@ const stopBodySchema = z.object({
   modelId: z.string().optional(),
 })
 
-const AI_ERROR_STATUS: Readonly<Record<AiErrorCode, ContentfulStatusCode>> = {
+export const AI_ERROR_STATUS: Readonly<Record<AiErrorCode, ContentfulStatusCode>> = {
   invalid_key: 502,
   missing_key: 503,
   rate_limited: 429,
