@@ -159,6 +159,21 @@ first-class in the contract. Usage arrives in a terminal chunk via
   and that actionable message reaches the client verbatim. **Live synthesis is not
   verified** until the terms are accepted; the adapter wire shape is unit-tested.
 
+## Video (capability posture)
+
+- The registry is data-driven for input/output modalities (`inputTypes`/
+  `outputTypes` are row data, not code), so declaring a video-capable model
+  needs no schema change. What is **not** implemented today is the runtime path:
+  no configured provider's catalog offers a video-input chat model (checked
+  against the live Groq catalog 2026-11-08), so `execution.ts` loads only
+  `image/*` attachments for vision and the adapters carry only text and image
+  parts. Supporting video later means: extending the attachment loader to the
+  model's declared `inputTypes`, and adding the provider's video part format to
+  the adapter wire builders — both localized changes behind the same capability
+  gate pattern used for vision.
+- Until then, video uploads degrade exactly like any binary: stored base64
+  (≤2 MB), no text extraction, no context integration, excluded from vision.
+
 ## Image generation
 
 - `POST /api/artifacts` generates one image from a prompt: `resolveImageModel`

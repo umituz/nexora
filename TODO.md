@@ -88,7 +88,7 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Code-focused workflows, multi-file context, diffs, artifacts. No server-side execution of
       generated code without an isolated sandbox.
 
-## Phase 8 — Multimodal
+## Phase 8 — Multimodal ✅
 
 - [x] Image understanding (vision input) — provider-capability driven; attachment
       images ride on `AdapterRequest.images`, capability gate 400, wire shapes
@@ -97,7 +97,9 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
       end to end, transcript feeds chat context).
 - [x] TTS (orpheus on Groq, Studio speech panel; live synthesis pending provider
       terms acceptance, request path live-verified).
-- [ ] Video — capability-gated; document registry/models with no video input support.
+- [x] Video — registry is modality-driven (inputTypes/outputTypes); no video-capable
+      model exists in any configured catalog, uploads degrade to stored binary
+      (capability posture documented in AI-CORE.md).
 
 ## Phase 9 — Infrastructure evolution
 
