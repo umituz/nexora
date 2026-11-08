@@ -71,10 +71,10 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Image generation integration (provider-capability driven).
 - [x] Artifact store, versioning, export.
 
-## Phase 5 — Agents and tools
+## Phase 5 — Agents and tools ✅
 
-- [ ] Agent CRUD, instructions, model + tool binding.
-- [ ] Tool registry with JSON schemas, permission validation, approval workflow, execution history.
+- [x] Agent CRUD, instructions, model + tool binding.
+- [x] Tool registry with JSON schemas, permission validation, approval workflow, execution history.
 
 ## Phase 6 — Research, knowledge, automation
 

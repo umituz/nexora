@@ -13,7 +13,9 @@ export function estimateTokens(text: string): number {
 }
 
 export function estimateMessageTokens(message: ChatMessage): number {
-  return estimateTokens(message.content) + 8
+  const toolStructure =
+    message.toolCalls && message.toolCalls.length > 0 ? estimateTokens(JSON.stringify(message.toolCalls)) : 0
+  return estimateTokens(message.content) + toolStructure + 8
 }
 
 export function buildContext(
@@ -34,7 +36,7 @@ export function buildContext(
   }
 
   selected.reverse()
-  while (selected.length > 1 && selected[0].role === 'assistant') {
+  while (selected.length > 1 && (selected[0].role === 'assistant' || selected[0].role === 'tool')) {
     selected.shift()
   }
 

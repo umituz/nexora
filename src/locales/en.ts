@@ -155,6 +155,7 @@ const en = {
     pinned: 'Pinned',
     sourceManual: 'Added by you',
     sourceConversation: 'From a conversation',
+    sourceAgent: 'Saved by an agent',
   },
   agents: {
     title: 'Agents',

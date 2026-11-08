@@ -113,4 +113,109 @@ describe('createOpenAiCompatibleAdapter', () => {
     expect(caught).toBeInstanceOf(AiError)
     expect((caught as AiError).code).toBe('network')
   })
+
+  it('sends tool definitions and serializes tool structure on the wire', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse([chunk({ choices: [{ delta: {} }] }), 'data: [DONE]\n\n']))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const adapter = createOpenAiCompatibleAdapter({ baseUrl: 'https://api.example.com/v1', apiKey: 'k', timeoutMs: 5000 })
+    const events = []
+    for await (const event of adapter.stream({
+      ...baseRequest,
+      messages: [
+        { role: 'user' as const, content: 'remember this' },
+        {
+          role: 'assistant' as const,
+          content: '',
+          toolCalls: [{ id: 'call_1', name: 'save_memory', arguments: '{"content":"fact"}' }],
+        },
+        { role: 'tool' as const, content: '{"status":"succeeded"}', toolCallId: 'call_1' },
+      ],
+      tools: [
+        {
+          name: 'save_memory',
+          description: 'Save a fact',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      ],
+    })) {
+      events.push(event)
+    }
+
+    expect(events).toEqual([])
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    expect(body.tools).toEqual([
+      {
+        type: 'function',
+        function: { name: 'save_memory', description: 'Save a fact', parameters: { type: 'object', properties: {}, required: [] } },
+      },
+    ])
+    expect(body.tool_choice).toBe('auto')
+    expect(body.messages).toEqual([
+      { role: 'user', content: 'remember this' },
+      {
+        role: 'assistant',
+        content: '',
+        tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'save_memory', arguments: '{"content":"fact"}' } }],
+      },
+      { role: 'tool', content: '{"status":"succeeded"}', tool_call_id: 'call_1' },
+    ])
+  })
+
+  it('accumulates streamed tool call fragments into one event', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        sseResponse([
+          chunk({
+            choices: [
+              {
+                delta: {
+                  tool_calls: [
+                    { index: 0, id: 'call_9', type: 'function', function: { name: 'save_memory', arguments: '' } },
+                  ],
+                },
+              },
+            ],
+          }),
+          chunk({
+            choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: '{"content":"' } }] } }],
+          }),
+          chunk({
+            choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: 'a fact"}' } }] } }],
+          }),
+          chunk({
+            choices: [{ delta: {} }],
+            usage: { prompt_tokens: 40, completion_tokens: 12 },
+          }),
+          'data: [DONE]\n\n',
+        ]),
+      ),
+    )
+
+    const adapter = createOpenAiCompatibleAdapter({ baseUrl: 'https://api.example.com/v1', apiKey: 'k', timeoutMs: 5000 })
+    const events = []
+    for await (const event of adapter.stream(baseRequest)) events.push(event)
+
+    expect(events).toEqual([
+      { type: 'usage', usage: { inputTokens: 40, outputTokens: 12, reasoningTokens: undefined } },
+      {
+        type: 'tool_calls',
+        calls: [{ id: 'call_9', name: 'save_memory', arguments: '{"content":"a fact"}' }],
+      },
+    ])
+  })
+
+  it('emits no tool_calls event when the model answers with text', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(sseResponse([chunk({ choices: [{ delta: { content: 'Hi' } }] }), 'data: [DONE]\n\n'])),
+    )
+
+    const adapter = createOpenAiCompatibleAdapter({ baseUrl: 'https://api.example.com/v1', apiKey: 'k', timeoutMs: 5000 })
+    const events = []
+    for await (const event of adapter.stream(baseRequest)) events.push(event)
+
+    expect(events).toEqual([{ type: 'delta', channel: 'answer', text: 'Hi' }])
+  })
 })

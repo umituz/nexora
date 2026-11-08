@@ -1,4 +1,6 @@
-import type { ConversationSettings, MessageStatus, TokenUsage } from '@shared/ai/contracts'
+import type { AssistantToolCall, ConversationSettings, MessageStatus, TokenUsage } from '@shared/ai/contracts'
+
+export type { PublicToolCall } from '@shared/ai/contracts'
 
 export interface ConversationRow {
   id: string
@@ -6,6 +8,7 @@ export interface ConversationRow {
   title: string
   projectId: string | null
   modelId: string | null
+  agentId: string | null
   isTemporary: boolean
   settings: ConversationSettings
   createdAt: string
@@ -26,9 +29,11 @@ export interface MessageRow {
   id: string
   conversationId: string
   userId: string
-  role: 'user' | 'assistant' | 'system'
+  role: 'user' | 'assistant' | 'system' | 'tool'
   content: string
   reasoning: string | null
+  toolCalls: AssistantToolCall[] | null
+  toolCallId: string | null
   modelId: string | null
   status: MessageStatus
   usage: TokenUsage | null
@@ -51,7 +56,7 @@ export interface MemoryRow {
   id: string
   userId: string
   content: string
-  source: 'manual' | 'conversation'
+  source: 'manual' | 'conversation' | 'agent'
   conversationId: string | null
   pinned: boolean
   createdAt: string

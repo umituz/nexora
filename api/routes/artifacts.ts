@@ -2,18 +2,16 @@ import { Hono } from 'hono'
 import { validator } from 'hono/validator'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { and, desc, eq, isNull } from 'drizzle-orm'
-import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
+import { ApiError, stampUpdate } from '@umituz/web-hono'
 import { validateJson } from '@umituz/web-hono/validator'
 import { z } from 'zod'
 import type { AiErrorCode } from '@shared/ai/contracts'
 import type { Env } from '../env'
 import { getDb } from '../db'
-import { artifacts, usageRecords } from '../schema'
+import { artifacts } from '../schema'
 import { requireUser } from '../session'
-import { imageAdapterFor } from '../ai/providers'
+import { generateArtifact } from '../ai/image-service'
 import { IMAGE_QUALITIES, IMAGE_SIZES, type ImageQuality, type ImageSize } from '../ai/providers/images'
-import { resolveImageModel } from '../ai/model-registry'
-import { buildUsageData } from '../ai/usage'
 import { AiError } from '../ai/errors'
 
 export const artifactsRouter = new Hono<{ Bindings: Env }>()
@@ -87,31 +85,10 @@ artifactsRouter.post(
     }
 
     const prompt = body.prompt ?? baseArtifact?.prompt ?? ''
-    const size = body.size ?? baseArtifact?.size ?? '1024x1024'
-    const quality = body.quality ?? baseArtifact?.quality ?? 'auto'
-    const resolved = await resolveImageModel(db, c.env, body.modelId ?? baseArtifact?.modelId ?? null)
-    const adapter = imageAdapterFor(c.env, resolved.provider)
-
-    const startedAt = Date.now()
-    let generated
-    try {
-      generated = await adapter.generate({
-        externalModelId: resolved.model.externalId,
-        prompt,
-        size,
-        quality,
-      })
-    } catch (err) {
-      if (err instanceof ApiError) return c.json({ error: err.message }, err.status)
-      if (err instanceof AiError) return c.json({ error: err.userMessage, code: err.code }, AI_ERROR_STATUS[err.code])
-      throw err
-    }
-    const durationMs = Date.now() - startedAt
-
-    const artifactId = uid('art')
-    const rootId = baseArtifact?.rootId ?? artifactId
-    let version = 1
+    let rootId: string | null = null
+    let version: number | undefined
     if (baseArtifact) {
+      rootId = baseArtifact.rootId
       const [latest] = await db
         .select({ version: artifacts.version })
         .from(artifacts)
@@ -121,38 +98,20 @@ artifactsRouter.post(
       version = (latest?.version ?? 0) + 1
     }
 
-    const [row] = await db
-      .insert(artifacts)
-      .values({
-        id: artifactId,
+    let row
+    try {
+      row = await generateArtifact(db, c.env, {
         userId: user.id,
-        kind: 'image',
         prompt,
-        modelId: resolved.model.id,
-        mimeType: 'image/png',
-        size,
-        quality,
-        rootId,
-        version,
-        dataBase64: generated.images[0],
+        size: body.size ?? (baseArtifact?.size as ImageSize | undefined),
+        quality: body.quality ?? (baseArtifact?.quality as ImageQuality | undefined),
+        modelId: body.modelId ?? baseArtifact?.modelId ?? null,
+        ...(rootId ? { rootId, version } : {}),
       })
-      .returning(metadataColumns)
-
-    if (generated.usage && (generated.usage.inputTokens > 0 || generated.usage.outputTokens > 0)) {
-      await db.insert(usageRecords).values({
-        id: uid('usage'),
-        userId: user.id,
-        conversationId: null,
-        messageId: null,
-        providerId: resolved.provider.id,
-        model: resolved.model.displayName,
-        ...buildUsageData({
-          usage: generated.usage,
-          pricing: resolved.model.pricing,
-          durationMs,
-        }),
-        status: 'complete',
-      })
+    } catch (err) {
+      if (err instanceof ApiError) return c.json({ error: err.message }, err.status)
+      if (err instanceof AiError) return c.json({ error: err.userMessage, code: err.code }, AI_ERROR_STATUS[err.code])
+      throw err
     }
 
     return c.json(row, 201)

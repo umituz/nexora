@@ -28,6 +28,10 @@ function toView(row: MessageRow): ChatMessageView {
   }
 }
 
+function toViews(rows: MessageRow[]): ChatMessageView[] {
+  return rows.filter((row) => row.role !== 'tool').map(toView)
+}
+
 export default function ChatPage(): ReactNode {
   const t = useT()
   const navigate = useNavigate()
@@ -75,7 +79,7 @@ export default function ChatPage(): ReactNode {
     ])
       .then(([messageRows, attachmentRows]) => {
         if (!alive) return
-        setMessages(messageRows.map(toView))
+        setMessages(toViews(messageRows))
         setAttachments(attachmentRows)
       })
       .catch(() => {
@@ -155,7 +159,7 @@ export default function ChatPage(): ReactNode {
           stoppedRef.current = false
         } else if (conversationId === conversationRow.id) {
           const rows = await apiFetch<MessageRow[]>(`/api/conversations/${conversationRow.id}/messages`).catch(() => null)
-          if (rows) setMessages(rows.map(toView))
+          if (rows) setMessages(toViews(rows))
         }
       }
     },

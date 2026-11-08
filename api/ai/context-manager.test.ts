@@ -14,6 +14,16 @@ describe('estimateMessageTokens', () => {
   it('adds a per-message overhead', () => {
     expect(estimateMessageTokens({ role: 'user', content: 'abcd' })).toBe(9)
   })
+
+  it('counts serialized tool call structure', () => {
+    const plain = estimateMessageTokens({ role: 'assistant', content: '' })
+    const withCalls = estimateMessageTokens({
+      role: 'assistant',
+      content: '',
+      toolCalls: [{ id: 'call_1', name: 'save_memory', arguments: '{"content":"remember"}' }],
+    })
+    expect(withCalls).toBeGreaterThan(plain)
+  })
 })
 
 describe('buildContext', () => {
@@ -48,5 +58,37 @@ describe('buildContext', () => {
     ]
     const result = buildContext(history, 'sys', budget)
     expect(result.map((m) => m.role)).toEqual(['system', 'user'])
+  })
+
+  it('trims a leading tool exchange so the window never starts with an unpaired tool message', () => {
+    const history: ChatMessage[] = [
+      { role: 'user', content: 'x'.repeat(2400) },
+      {
+        role: 'assistant',
+        content: '',
+        toolCalls: [{ id: 'call_1', name: 'save_memory', arguments: '{"content":"x"}' }],
+      },
+      { role: 'tool', content: '{"status":"succeeded"}', toolCallId: 'call_1' },
+      { role: 'user', content: 'thanks' },
+    ]
+    const result = buildContext(history, 'sys', budget)
+    expect(result.map((m) => m.role)).toEqual(['system', 'user'])
+  })
+
+  it('keeps an intact tool exchange inside the window', () => {
+    const history: ChatMessage[] = [
+      { role: 'user', content: 'remember a fact' },
+      {
+        role: 'assistant',
+        content: '',
+        toolCalls: [{ id: 'call_1', name: 'save_memory', arguments: '{"content":"x"}' }],
+      },
+      { role: 'tool', content: '{"status":"succeeded"}', toolCallId: 'call_1' },
+      { role: 'user', content: 'thanks' },
+    ]
+    const result = buildContext(history, 'sys', budget)
+    expect(result).toHaveLength(5)
+    expect(result[2]).toMatchObject({ role: 'assistant', toolCalls: [{ id: 'call_1' }] })
+    expect(result[3]).toEqual({ role: 'tool', content: '{"status":"succeeded"}', toolCallId: 'call_1' })
   })
 })

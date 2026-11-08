@@ -14,9 +14,15 @@ export interface ProjectContext {
   instructions: string
 }
 
+export interface AgentContext {
+  name: string
+  instructions: string
+}
+
 export interface SystemPromptInput {
   settings?: ConversationSettings
   project?: ProjectContext | null
+  agent?: AgentContext | null
   attachments?: readonly { name: string; text: string }[]
   memories?: readonly string[]
   now?: Date
@@ -29,6 +35,11 @@ export function buildSystemPrompt(input: SystemPromptInput = {}): string {
   const projectInstructions = input.project?.instructions?.trim()
   if (projectInstructions) {
     parts.push(`The user is working inside the project "${input.project!.name}". Follow these project instructions:\n${projectInstructions}`)
+  }
+
+  const agentInstructions = input.agent?.instructions?.trim()
+  if (agentInstructions) {
+    parts.push(`You are operating as the agent "${input.agent!.name}". Follow these agent instructions:\n${agentInstructions}`)
   }
 
   const extra = input.settings?.systemExtra?.trim()

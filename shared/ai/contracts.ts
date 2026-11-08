@@ -1,8 +1,39 @@
-export type ChatRole = 'system' | 'user' | 'assistant'
+export type ChatRole = 'system' | 'user' | 'assistant' | 'tool'
+
+export interface AssistantToolCall {
+  id: string
+  name: string
+  arguments: string
+}
 
 export interface ChatMessage {
   role: ChatRole
   content: string
+  toolCalls?: AssistantToolCall[]
+  toolCallId?: string
+}
+
+export interface ToolDefinition {
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+}
+
+export type ToolCallStatus = 'pending' | 'approved' | 'rejected' | 'succeeded' | 'failed'
+
+export interface PublicToolCall {
+  id: string
+  conversationId: string
+  messageId: string | null
+  agentId: string | null
+  callId: string
+  toolKey: string
+  toolName: string
+  args: Record<string, unknown>
+  status: ToolCallStatus
+  result: Record<string, unknown> | null
+  error: string | null
+  createdAt: string
 }
 
 export interface ModelCapabilities {
@@ -53,6 +84,7 @@ export const DEFAULT_GENERATION: Required<GenerationSettings> = {
 export type StreamEvent =
   | { type: 'delta'; channel: 'answer' | 'reasoning'; text: string }
   | { type: 'usage'; usage: TokenUsage }
+  | { type: 'tool_call'; toolCall: PublicToolCall }
   | { type: 'done'; messageId: string }
   | { type: 'error'; code: AiErrorCode; message: string }
 

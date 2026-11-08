@@ -8,10 +8,11 @@ import { z } from 'zod'
 import { GENERATION_BOUNDS, type AiErrorCode, type StreamEvent } from '@shared/ai/contracts'
 import type { Env } from '../env'
 import { getDb } from '../db'
-import { conversations, messages, models } from '../schema'
+import { conversations, messages, models, toolCalls } from '../schema'
 import { requireUser } from '../session'
 import { runGeneration, type GenerationMode } from '../ai/execution'
 import { replayFirst, sseStreamResponse } from '../ai/streaming'
+import { executeToolCall } from '../ai/tools'
 import { AiError } from '../ai/errors'
 
 export const chatRouter = new Hono<{ Bindings: Env }>()
@@ -192,6 +193,176 @@ chatRouter.post(
     return c.json(updated, 200)
   },
 )
+
+const resolveBodySchema = z.object({ approved: z.boolean() })
+
+const TOOL_CALL_COLUMNS = {
+  id: toolCalls.id,
+  conversationId: toolCalls.conversationId,
+  messageId: toolCalls.messageId,
+  agentId: toolCalls.agentId,
+  callId: toolCalls.callId,
+  toolKey: toolCalls.toolKey,
+  toolName: toolCalls.toolName,
+  args: toolCalls.args,
+  status: toolCalls.status,
+  result: toolCalls.result,
+  error: toolCalls.error,
+  createdAt: toolCalls.createdAt,
+}
+
+chatRouter.get('/conversations/:id/tool-calls', async (c) => {
+  const user = await requireUser(c)
+  const db = getDb(c.env)
+
+  const [conversation] = await db
+    .select({ id: conversations.id })
+    .from(conversations)
+    .where(and(eq(conversations.id, c.req.param('id')), eq(conversations.userId, user.id), isNull(conversations.deletedAt)))
+    .limit(1)
+  if (!conversation) return c.json({ error: 'Conversation not found' }, 404)
+
+  const rows = await db
+    .select(TOOL_CALL_COLUMNS)
+    .from(toolCalls)
+    .where(and(eq(toolCalls.conversationId, conversation.id), eq(toolCalls.userId, user.id), isNull(toolCalls.deletedAt)))
+    .orderBy(asc(toolCalls.createdAt))
+  return c.json(rows)
+})
+
+chatRouter.post(
+  '/conversations/:id/tool-calls/:toolCallId/resolve',
+  validator('json', validateJson(resolveBodySchema, 'Invalid tool call payload')),
+  async (c) => {
+    const user = await requireUser(c)
+    const db = getDb(c.env)
+    const conversationId = c.req.param('id')
+    const body = c.req.valid('json')
+
+    const [conversation] = await db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, user.id), isNull(conversations.deletedAt)))
+      .limit(1)
+    if (!conversation) return c.json({ error: 'Conversation not found' }, 404)
+
+    const [row] = await db
+      .select(TOOL_CALL_COLUMNS)
+      .from(toolCalls)
+      .where(
+        and(
+          eq(toolCalls.id, c.req.param('toolCallId')),
+          eq(toolCalls.conversationId, conversationId),
+          eq(toolCalls.userId, user.id),
+          isNull(toolCalls.deletedAt),
+        ),
+      )
+      .limit(1)
+    if (!row) return c.json({ error: 'Tool call not found' }, 404)
+    if (row.status !== 'pending') return c.json({ error: 'Tool call is not pending' }, 409)
+
+    if (!body.approved) {
+      await db
+        .update(toolCalls)
+        .set({ status: 'rejected', ...stampUpdate(toolCalls) })
+        .where(eq(toolCalls.id, row.id))
+      await insertToolResultMessage(db, {
+        userId: user.id,
+        conversationId,
+        callId: row.callId,
+        payload: { status: 'rejected', message: 'The user declined this tool call.' },
+      })
+    } else {
+      await db
+        .update(toolCalls)
+        .set({ status: 'approved', ...stampUpdate(toolCalls) })
+        .where(eq(toolCalls.id, row.id))
+
+      const outcome = await executeToolCall(db, c.env, {
+        userId: user.id,
+        conversationId,
+        toolKey: row.toolKey,
+        args: row.args,
+      })
+
+      if (outcome.ok) {
+        await db
+          .update(toolCalls)
+          .set({ status: 'succeeded', result: outcome.result, ...stampUpdate(toolCalls) })
+          .where(eq(toolCalls.id, row.id))
+        await insertToolResultMessage(db, {
+          userId: user.id,
+          conversationId,
+          callId: row.callId,
+          payload: { status: 'succeeded', result: outcome.result },
+        })
+      } else {
+        await db
+          .update(toolCalls)
+          .set({ status: 'failed', error: outcome.error, ...stampUpdate(toolCalls) })
+          .where(eq(toolCalls.id, row.id))
+        await insertToolResultMessage(db, {
+          userId: user.id,
+          conversationId,
+          callId: row.callId,
+          payload: { status: 'failed', error: outcome.error },
+        })
+      }
+    }
+
+    await db.update(conversations).set(stampUpdate(conversations)).where(eq(conversations.id, conversationId))
+
+    const pendingRows = await db
+      .select({ id: toolCalls.id })
+      .from(toolCalls)
+      .where(and(eq(toolCalls.conversationId, conversationId), eq(toolCalls.status, 'pending'), isNull(toolCalls.deletedAt)))
+    if (pendingRows.length > 0) {
+      return c.json({ pending: pendingRows.map((pending) => pending.id) }, 200)
+    }
+
+    const events = runGeneration({
+      db,
+      env: c.env,
+      userId: user.id,
+      conversationId,
+      content: null,
+      mode: 'continue',
+      modelId: null,
+      settings: undefined,
+      signal: c.req.raw.signal,
+      waitUntil: (promise) => c.executionCtx.waitUntil(promise),
+    })
+
+    let first: IteratorResult<StreamEvent>
+    try {
+      first = await events.next()
+    } catch (err) {
+      if (err instanceof ApiError) return c.json({ error: err.message }, err.status)
+      if (err instanceof AiError) {
+        return c.json({ error: err.userMessage, code: err.code }, AI_ERROR_STATUS[err.code])
+      }
+      throw err
+    }
+
+    if (first.done) return c.json({ error: 'Generation produced no output' }, 500)
+    return sseStreamResponse(replayFirst(first.value, events))
+  },
+)
+
+async function insertToolResultMessage(
+  db: ReturnType<typeof getDb>,
+  input: { userId: string; conversationId: string; callId: string; payload: Record<string, unknown> },
+): Promise<void> {
+  await db.insert(messages).values({
+    id: uid('msg'),
+    conversationId: input.conversationId,
+    userId: input.userId,
+    role: 'tool',
+    content: JSON.stringify(input.payload),
+    toolCallId: input.callId,
+    status: 'complete',
+  })
+}
 
 chatRouter.get('/conversations/:id/messages', async (c) => {
   const user = await requireUser(c)

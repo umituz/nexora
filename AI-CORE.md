@@ -114,6 +114,7 @@ Standard SSE (`text/event-stream`) on `POST /api/chat/:conversationId/stream`:
 |---|---|---|
 | `delta` | `{ channel: 'answer' \| 'reasoning', text }` | partial output |
 | `usage` | `{ inputTokens, outputTokens, reasoningTokens }` | final token usage |
+| `tool_call` | `{ toolCall }` | the model requested a tool; the call is pending approval (no `done` follows) |
 | `done` | `{ messageId }` | assistant message persisted |
 | `error` | `{ code, message }` | normalized failure (stream continues to close) |
 
@@ -150,7 +151,10 @@ pure, unit-tested module (`failover.ts`); orchestration lives in `execution.ts`.
 - Strategy (configurable): recent-messages window within the model's context budget,
   always ending with the newest user message; system prompt occupies the head.
 - Token estimation: characters/4 heuristic (no tokenizer dependency); budget checks
-  against registry `context_window` minus requested `max_output_tokens`.
+  against registry `context_window` minus requested `max_output_tokens`. Serialized
+  tool-call structure counts toward a message's estimate, and a window never starts
+  with an unpaired assistant-tool-call or tool-result message (leading fragments are
+  trimmed so provider replay validation always passes).
 - Phase 2 landed: project instructions, long-term memories (pinned-first, recency-ordered,
   capped 20 items / 4 K chars), and attachment text are prioritized context segments
   assembled by the prompt engine (never ad-hoc concatenation in handlers). Retrieved
@@ -183,20 +187,49 @@ mid-stream failures. Provider response bodies are logged server-side only.
 
 - Tool registry (`nexora_tools`): seeded builtin tools with JSON-Schema
   parameters and a `requiresApproval` flag; read-only through `/api/tools`.
-  The two seeded tools map to implemented capabilities — `generate_image`
-  (artifact pipeline) and `save_memory` (memory engine). No tool is seeded
-  before its executor exists.
+  The two seeded tools map to implemented executors — `generate_image`
+  (artifact pipeline) and `save_memory` (memory engine, `source: 'agent'`).
+  No tool is seeded before its executor exists.
 - Agents (`nexora_agents`): per-user name, description, standing instructions,
   an optional bound model (must produce text) and tool bindings validated
   against the registry at write time. CRUD mirrors the projects/memories
   pattern; the Agents page manages bindings.
-- The execution loop (model → tool call → approval → result → continue) is the
-  next phase: schemas and bindings are data, approval gating and execution
-  history land with it.
+- Execution loop (live-verified against Groq, 2026-11-08): a conversation
+  binds an agent via `conversations.agentId` (validated on create/PATCH).
+  Generation in an agent conversation injects the agent instructions into the
+  system prompt, prefers the agent's bound model (`request → agent →
+  conversation`), and offers the bound tools to the model (OpenAI wire
+  `tools` + `tool_choice: auto`, OpenAI-compatible providers only — the
+  gate rejects other adapters and models without the `tools` capability;
+  failover is disabled for tool-carrying requests so a tool conversation
+  never silently degrades to another provider).
+- When the model requests a tool, the streamed turn persists as an assistant
+  message carrying the provider `tool_calls` array, each call becomes a
+  `nexora_tool_calls` history row (`pending`), and the stream emits a
+  `tool_call` SSE event instead of `done`. Unknown tool names requested by
+  the model are marked `failed` immediately with a synthetic tool-result
+  message, so the continuation request always satisfies provider replay
+  validation.
+- Approval: `POST /api/conversations/:id/tool-calls/:callId/resolve
+  {approved}` rejects, or executes after zod-validated args (`failed` on
+  validation/executor errors, never a 500), writes a role-`tool` result
+  message, and — when no other calls are pending — streams the continuation
+  generation itself (SSE). Rejection feeds `{status: 'rejected'}` back to the
+  model so it can answer honestly; the loop supports chained calls (a
+  continuation may request further tools). Re-resolving a settled call is
+  409; every endpoint is user-scoped.
+- Arg schemas live in `api/ai/tools.ts` next to the executors; the image
+  core (`generateArtifact`) is shared with the Studio route so the tool and
+  the page generate identically.
+- The `generate_image` executor's failure path is live-verified (no
+  `OPENAI_API_KEY` in this workspace → call marked `failed`, model informed,
+  answers without the image); its success path is verified through the same
+  shared core via the Studio stub E2E.
 
 ## What stays out
 
-- No tool execution yet (arrives with the approval workflow; schema-validated,
-  approval-gated).
+- No auto-executing tools yet: every seeded tool is `requiresApproval` and the
+  runtime pauses each call for an explicit approve/reject. A no-approval fast
+  path would run inside the same executor and history pipeline when needed.
 - No embeddings/RAG (Phase 6; pgvector availability on Neon to be verified then).
 - Generated code is never executed server-side (future sandbox requirement documented in TODO).

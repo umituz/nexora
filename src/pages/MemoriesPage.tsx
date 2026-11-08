@@ -116,7 +116,11 @@ export default function MemoriesPage(): ReactNode {
                 <div className="min-w-0">
                   <p className="whitespace-pre-line text-sm">{memory.content}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    {memory.source === 'conversation' ? t('memories.sourceConversation') : t('memories.sourceManual')}
+                    {memory.source === 'conversation'
+                      ? t('memories.sourceConversation')
+                      : memory.source === 'agent'
+                        ? t('memories.sourceAgent')
+                        : t('memories.sourceManual')}
                     {memory.pinned ? ` · ${t('memories.pinned')}` : ''}
                   </p>
                 </div>

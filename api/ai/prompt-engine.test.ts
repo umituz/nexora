@@ -29,6 +29,17 @@ describe('buildSystemPrompt', () => {
     expect(prompt).not.toContain('Nova App')
   })
 
+  it('injects agent instructions with the agent name', () => {
+    const prompt = buildSystemPrompt({ agent: { name: 'Research buddy', instructions: 'Always cite sources.' } })
+    expect(prompt).toContain('agent "Research buddy"')
+    expect(prompt).toContain('Always cite sources.')
+  })
+
+  it('ignores an agent without instructions', () => {
+    const prompt = buildSystemPrompt({ agent: { name: 'Silent', instructions: '' } })
+    expect(prompt).not.toContain('Silent')
+  })
+
   it('injects memories and attachments in their own blocks', () => {
     const prompt = buildSystemPrompt({
       memories: ['Prefers concise answers'],

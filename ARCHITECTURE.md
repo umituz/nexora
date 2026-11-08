@@ -107,6 +107,12 @@ session. Model/provider registries are global read-only reference data.
   (`artifacts.dataBase64`), served only to the owning user through `/image` (inline,
   immutable cache) and `/download` (attachment) endpoints; R2 swap follows the
   attachments path.
+- Agent tool calls never execute without an explicit per-call approval: the model's
+  request is persisted (`nexora_tool_calls`, status `pending`) and only the owning
+  user's `resolve` call executes it, after zod arg validation against the registry
+  schema. Tool args and results are data (jsonb), executors are server-side builtins
+  only, and the full history (pending → approved/rejected → succeeded/failed, with
+  result/error) is queryable per conversation.
 - Errors normalized through the fleet error envelope (`{ error, details? }`); provider
   internals never leak to clients.
 

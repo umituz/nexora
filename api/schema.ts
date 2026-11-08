@@ -3,11 +3,13 @@ import { boolean, index, integer, jsonb, pgTable, text, uniqueIndex } from 'driz
 import { trio } from '@umituz/web-hono'
 import { authTables } from '@umituz/web-hono/auth'
 import type {
+  AssistantToolCall,
   ConversationSettings,
   MessageStatus,
   ModelCapabilities,
   ModelPricing,
   TokenUsage,
+  ToolCallStatus,
 } from '@shared/ai/contracts'
 
 export const TABLE_PREFIX = 'nexora'
@@ -84,6 +86,7 @@ export const conversations = pgTable(
     title: text('title').notNull(),
     projectId: text('project_id').references(() => projects.id),
     modelId: text('model_id').references(() => models.id),
+    agentId: text('agent_id'),
     isTemporary: boolean('is_temporary').notNull().default(false),
     settings: jsonb('settings').$type<ConversationSettings>().notNull().default({}),
     ...trio(),
@@ -102,6 +105,8 @@ export const messages = pgTable(
     role: text('role').notNull(),
     content: text('content').notNull(),
     reasoning: text('reasoning'),
+    toolCalls: jsonb('tool_calls').$type<AssistantToolCall[]>(),
+    toolCallId: text('tool_call_id'),
     modelId: text('model_id'),
     status: text('status').$type<MessageStatus>().notNull().default('complete'),
     usage: jsonb('usage').$type<TokenUsage>(),
@@ -200,6 +205,33 @@ export const agents = pgTable(
   (t) => [index(tn('agents_user_idx')).on(t.userId, t.updatedAt)],
 )
 
+export const TOOL_CALL_STATUSES = ['pending', 'approved', 'rejected', 'succeeded', 'failed'] as const
+export type ToolCallRowStatus = (typeof TOOL_CALL_STATUSES)[number]
+
+export const toolCalls = pgTable(
+  tn('tool_calls'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id),
+    messageId: text('message_id'),
+    agentId: text('agent_id'),
+    callId: text('call_id').notNull(),
+    toolKey: text('tool_key').notNull(),
+    toolName: text('tool_name').notNull(),
+    args: jsonb('args').$type<Record<string, unknown>>().notNull(),
+    status: text('status').$type<ToolCallStatus>().notNull().default('pending'),
+    result: jsonb('result').$type<Record<string, unknown>>(),
+    error: text('error'),
+    ...trio(),
+  },
+  (t) => [index(tn('tool_calls_conversation_idx')).on(t.conversationId, t.createdAt)],
+)
+
 export const attachments = pgTable(
   tn('attachments'),
   {
@@ -222,7 +254,7 @@ export const attachments = pgTable(
   (t) => [index(tn('attachments_conversation_idx')).on(t.conversationId, t.createdAt)],
 )
 
-export const MEMORY_SOURCES = ['manual', 'conversation'] as const
+export const MEMORY_SOURCES = ['manual', 'conversation', 'agent'] as const
 export type MemorySource = (typeof MEMORY_SOURCES)[number]
 
 export const memories = pgTable(

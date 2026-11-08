@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { DEFAULT_CONVERSATION_TITLE, GENERATION_BOUNDS, type ConversationSettings } from '@shared/ai/contracts'
 import type { Env } from '../env'
 import { getDb } from '../db'
-import { conversations, projects } from '../schema'
+import { agents, conversations, projects } from '../schema'
 import { requireUser } from '../session'
 import { resolveModel } from '../ai/model-registry'
 
@@ -23,12 +23,14 @@ const settingsSchema = z.object({
 const createSchema = z.object({
   modelId: z.string().nullish(),
   projectId: z.string().nullish(),
+  agentId: z.string().nullish(),
   settings: settingsSchema.optional(),
 })
 
 const patchSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   projectId: z.string().nullish(),
+  agentId: z.string().nullish(),
   settings: settingsSchema.optional(),
 })
 
@@ -40,6 +42,17 @@ async function ownedProjectId(db: ReturnType<typeof getDb>, projectId: string | 
     .where(and(eq(projects.id, projectId), eq(projects.userId, userId), isNull(projects.deletedAt)))
     .limit(1)
   if (!row) throw ApiError.notFound('Project')
+  return row.id
+}
+
+async function ownedAgentId(db: ReturnType<typeof getDb>, agentId: string | null | undefined, userId: string) {
+  if (!agentId) return null
+  const [row] = await db
+    .select({ id: agents.id })
+    .from(agents)
+    .where(and(eq(agents.id, agentId), eq(agents.userId, userId), eq(agents.active, true), isNull(agents.deletedAt)))
+    .limit(1)
+  if (!row) throw ApiError.notFound('Agent')
   return row.id
 }
 
@@ -66,6 +79,7 @@ conversationsRouter.post(
       await resolveModel(db, c.env, body.modelId)
     }
     const projectId = await ownedProjectId(db, body.projectId, user.id)
+    const agentId = await ownedAgentId(db, body.agentId, user.id)
 
     const [row] = await db
       .insert(conversations)
@@ -75,6 +89,7 @@ conversationsRouter.post(
         title: DEFAULT_CONVERSATION_TITLE,
         projectId,
         modelId: body.modelId ?? null,
+        agentId,
         settings: (body.settings ?? {}) satisfies ConversationSettings,
       })
       .returning()
@@ -99,12 +114,14 @@ conversationsRouter.patch(
     if (!existing) return c.json({ error: 'Conversation not found' }, 404)
 
     const projectId = body.projectId !== undefined ? await ownedProjectId(db, body.projectId, user.id) : undefined
+    const agentId = body.agentId !== undefined ? await ownedAgentId(db, body.agentId, user.id) : undefined
 
     const [row] = await db
       .update(conversations)
       .set({
         ...(body.title !== undefined ? { title: body.title } : {}),
         ...(projectId !== undefined ? { projectId } : {}),
+        ...(agentId !== undefined ? { agentId } : {}),
         ...(body.settings !== undefined ? { settings: body.settings satisfies ConversationSettings } : {}),
         ...stampUpdate(conversations),
       })
