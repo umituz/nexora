@@ -10,10 +10,9 @@ import type { Env } from '../env'
 import { getDb } from '../db'
 import { conversations, messages, models, toolCalls } from '../schema'
 import { requireUser } from '../session'
+import { AiError, replayFirst, sseStreamResponse } from '@umituz/web-ai'
 import { runGeneration, type GenerationMode } from '../ai/execution'
-import { replayFirst, sseStreamResponse } from '../ai/streaming'
 import { executeToolCall } from '../ai/tools'
-import { AiError } from '../ai/errors'
 
 export const chatRouter = new Hono<{ Bindings: Env }>()
 

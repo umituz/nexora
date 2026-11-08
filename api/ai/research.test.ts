@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { TokenUsage } from '@shared/ai/contracts'
-import { AiError } from './errors'
+import { AiError } from '@umituz/web-ai'
 import type { ProviderEvent } from './providers'
 import {
   accumulateReport,

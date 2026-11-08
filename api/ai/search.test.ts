@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AiError } from './errors'
+import { AiError } from '@umituz/web-ai'
 import { searchWeb } from './search'
 
 function jsonResponse(status: number, body: unknown): Response {

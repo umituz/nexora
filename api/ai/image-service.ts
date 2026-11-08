@@ -1,10 +1,12 @@
 import { uid } from '@umituz/web-hono'
 import { artifacts, usageRecords } from '../schema'
 import type { Db, Env } from '../env'
+import { buildUsageData, IMAGE_QUALITIES, IMAGE_SIZES } from '@umituz/web-ai'
 import { resolveImageModel } from './model-registry'
 import { imageAdapterFor, type ImageAdapter } from './providers'
-import type { ImageQuality, ImageSize } from './providers/images'
-import { buildUsageData } from './usage'
+
+export type ImageSize = (typeof IMAGE_SIZES)[number]
+export type ImageQuality = (typeof IMAGE_QUALITIES)[number]
 
 export interface GenerateArtifactInput {
   userId: string

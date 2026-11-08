@@ -7,10 +7,14 @@ import { z } from 'zod'
 import type { AiErrorCode } from '@shared/ai/contracts'
 import type { Env } from '../env'
 import { getDb } from '../db'
+import {
+  AiError,
+  SPEECH_INPUT_MAX,
+  SPEECH_VOICES,
+  type SpeechVoice,
+} from '@umituz/web-ai'
 import { resolveSpeechModel } from '../ai/model-registry'
 import { speechAdapterFor } from '../ai/providers'
-import { SPEECH_INPUT_MAX, SPEECH_VOICES, type SpeechVoice } from '../ai/providers/speech'
-import { AiError } from '../ai/errors'
 import { requireUser } from '../session'
 
 export const audioRouter = new Hono<{ Bindings: Env }>()

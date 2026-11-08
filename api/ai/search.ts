@@ -1,4 +1,4 @@
-import { errorFromStatus, errorFromUnknown, AiError } from './errors'
+import { errorFromStatus, errorFromUnknown, AiError } from '@umituz/web-ai'
 
 export type SearchTopic = 'general' | 'news'
 

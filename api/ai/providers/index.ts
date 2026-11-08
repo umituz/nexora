@@ -1,16 +1,47 @@
-import { AiError } from '../errors'
-import { createAnthropicAdapter } from './anthropic'
-import { createOpenAiAudioTranscriptionAdapter, type AudioTranscriptionAdapter } from './audio'
-import { createOpenAiEmbeddingsAdapter, type EmbeddingsAdapter } from './embeddings'
-import { createOpenAiImageAdapter, type ImageAdapter } from './images'
-import { createOpenAiCompatibleAdapter, type ChatAdapter } from './openai-compatible'
-import { createOpenAiSpeechAdapter, type SpeechAdapter } from './speech'
+import {
+  AiError,
+  createAnthropicAdapter,
+  createOpenAiAudioTranscriptionAdapter,
+  createOpenAiEmbeddingsAdapter,
+  createOpenAiImageAdapter,
+  createOpenAiCompatibleAdapter,
+  createOpenAiSpeechAdapter,
+  type AudioTranscriptionAdapter,
+  type AudioTranscriptionRequest,
+  type AudioTranscriptionResult,
+  type EmbeddingsAdapter,
+  type EmbeddingsRequest,
+  type EmbeddingsResult,
+  type ImageAdapter,
+  type ImageRequest,
+  type ImageResult,
+  type ChatAdapter,
+  type ProviderEvent,
+  type AdapterRequest,
+  type SpeechAdapter,
+  type SpeechRequest,
+  type SpeechResult,
+  type SpeechVoice,
+} from '@umituz/web-ai'
 
-export type { ChatAdapter, ProviderEvent, AdapterRequest } from './openai-compatible'
-export type { ImageAdapter, ImageRequest, ImageResult } from './images'
-export type { EmbeddingsAdapter, EmbeddingsRequest, EmbeddingsResult } from './embeddings'
-export type { AudioTranscriptionAdapter, AudioTranscriptionRequest, AudioTranscriptionResult } from './audio'
-export type { SpeechAdapter, SpeechRequest, SpeechResult, SpeechVoice } from './speech'
+export type {
+  ChatAdapter,
+  ProviderEvent,
+  AdapterRequest,
+  ImageAdapter,
+  ImageRequest,
+  ImageResult,
+  EmbeddingsAdapter,
+  EmbeddingsRequest,
+  EmbeddingsResult,
+  AudioTranscriptionAdapter,
+  AudioTranscriptionRequest,
+  AudioTranscriptionResult,
+  SpeechAdapter,
+  SpeechRequest,
+  SpeechResult,
+  SpeechVoice,
+}
 
 export interface ProviderBinding {
   adapter: string

@@ -10,9 +10,12 @@ import type { Env } from '../env'
 import { getDb } from '../db'
 import { artifacts } from '../schema'
 import { requireUser } from '../session'
-import { generateArtifact } from '../ai/image-service'
-import { IMAGE_QUALITIES, IMAGE_SIZES, type ImageQuality, type ImageSize } from '../ai/providers/images'
-import { AiError } from '../ai/errors'
+import {
+  AiError,
+  IMAGE_QUALITIES,
+  IMAGE_SIZES,
+} from '@umituz/web-ai'
+import { generateArtifact, type ImageQuality, type ImageSize } from '../ai/image-service'
 
 export const artifactsRouter = new Hono<{ Bindings: Env }>()
 

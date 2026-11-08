@@ -7,7 +7,7 @@ import { GitCompare, ChevronDown, ChevronRight } from 'lucide-react'
 import type { CodeArtifactFull, CodeArtifactRow, CodeArtifactVersionRow } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
 import { useT } from '@/i18n'
-import { countChanges, diffLines } from '@/lib/diff'
+import { countChanges, diffLines } from '@umituz/web-ai'
 
 export default function CodePage(): ReactNode {
   const t = useT()

@@ -2,10 +2,9 @@ import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
 import { documents, documentChunks, usageRecords, tn } from '../schema'
 import type { Db, Env } from '../env'
-import { chunkText, CHUNK_TEXT_LIMIT } from './chunker'
+import { buildUsageData, chunkText, CHUNK_TEXT_LIMIT } from '@umituz/web-ai'
 import { resolveEmbeddingModel } from './model-registry'
 import { embeddingsAdapterFor, type EmbeddingsAdapter } from './providers'
-import { buildUsageData } from './usage'
 
 export const KNOWLEDGE_MAX_RESULTS = 8
 const EMBED_BATCH_SIZE = 32

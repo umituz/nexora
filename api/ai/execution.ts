@@ -14,16 +14,21 @@ import {
   type ToolDefinition,
 } from '@shared/ai/contracts'
 import type { Db, Env } from '../env'
+import {
+  AiError,
+  buildContext,
+  buildUsageData,
+  canFailover,
+  capText,
+  errorFromUnknown,
+  failoverCandidate,
+  TEXT_EXTRACT_TOTAL_LIMIT,
+} from '@umituz/web-ai'
 import { agents, attachments, conversations, messages, projects, toolCalls, tools, usageRecords } from '../schema'
-import { capText, TEXT_EXTRACT_TOTAL_LIMIT } from '../text-extract'
-import { AiError, errorFromUnknown } from './errors'
-import { buildContext } from './context-manager'
-import { canFailover, failoverCandidate } from './failover'
 import { loadMemories } from './memories'
 import { resolveModel, type ResolvedModel } from './model-registry'
 import { routeModelRequest, type RoutedRequest } from './model-router'
 import { buildSystemPrompt, type AgentContext, type ProjectContext } from './prompt-engine'
-import { buildUsageData } from './usage'
 
 export type GenerationMode = 'append' | 'regenerate' | 'continue'
 
@@ -300,7 +305,7 @@ async function* streamAnswer(input: GenerationInput, state: GenerationState): As
           else answer += event.text
           yield { type: 'delta', channel: event.channel, text: event.text }
         } else if (event.type === 'tool_calls') {
-          requestedToolCalls = event.calls
+          requestedToolCalls = [...event.calls]
         } else {
           usage = event.usage
         }

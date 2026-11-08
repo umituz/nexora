@@ -4,7 +4,7 @@ import { apiFetch } from '@umituz/web-hono/client'
 import { CodeBlock, MarkdownText } from '@umituz/web-design-system'
 import { BookmarkPlus, Check } from 'lucide-react'
 import { useT } from '@/i18n'
-import { deriveSnippetTitle, splitMarkdown } from '@/lib/markdown'
+import { deriveSnippetTitle, splitMarkdown } from '@umituz/web-ai'
 
 interface MessageContentProps {
   content: string

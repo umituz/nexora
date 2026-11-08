@@ -1,13 +1,18 @@
 import { Hono } from 'hono'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
+import {
+  AiError,
+  capText,
+  extractText,
+  isTextLike,
+  TEXT_EXTRACT_PER_FILE_LIMIT,
+} from '@umituz/web-ai'
 import type { Env } from '../env'
 import { getDb } from '../db'
-import { AiError } from '../ai/errors'
 import { transcribeAudio } from '../ai/audio'
 import { attachments, conversations } from '../schema'
 import { requireUser } from '../session'
-import { capText, extractText, isTextLike, TEXT_EXTRACT_PER_FILE_LIMIT } from '../text-extract'
 
 export const attachmentsRouter = new Hono<{ Bindings: Env }>()
 

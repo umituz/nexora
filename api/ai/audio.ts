@@ -1,5 +1,5 @@
+import { capText, TEXT_EXTRACT_PER_FILE_LIMIT } from '@umituz/web-ai'
 import type { Db, Env } from '../env'
-import { capText, TEXT_EXTRACT_PER_FILE_LIMIT } from '../text-extract'
 import { findTranscriptionModel } from './model-registry'
 import { audioTranscriptionAdapterFor } from './providers'
 
