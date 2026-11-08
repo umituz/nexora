@@ -179,9 +179,24 @@ upstream_error | network | cancelled` — each with a user-safe message. Mapped 
 fleet envelope for request-time failures (ApiError) or to `error` stream events for
 mid-stream failures. Provider response bodies are logged server-side only.
 
+## Agents and tools
+
+- Tool registry (`nexora_tools`): seeded builtin tools with JSON-Schema
+  parameters and a `requiresApproval` flag; read-only through `/api/tools`.
+  The two seeded tools map to implemented capabilities — `generate_image`
+  (artifact pipeline) and `save_memory` (memory engine). No tool is seeded
+  before its executor exists.
+- Agents (`nexora_agents`): per-user name, description, standing instructions,
+  an optional bound model (must produce text) and tool bindings validated
+  against the registry at write time. CRUD mirrors the projects/memories
+  pattern; the Agents page manages bindings.
+- The execution loop (model → tool call → approval → result → continue) is the
+  next phase: schemas and bindings are data, approval gating and execution
+  history land with it.
+
 ## What stays out
 
-- No tool execution in Phase 1 (agent framework arrives Phase 5 with schema-validated,
-  approval-gated tools).
-- No embeddings/RAG in Phase 1 (Phase 6; pgvector availability on Neon to be verified then).
+- No tool execution yet (arrives with the approval workflow; schema-validated,
+  approval-gated).
+- No embeddings/RAG (Phase 6; pgvector availability on Neon to be verified then).
 - Generated code is never executed server-side (future sandbox requirement documented in TODO).

@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { neon } from '@neondatabase/serverless'
 import type { ModelCapabilities, ModelPricing } from '@shared/ai/contracts'
-import { models, providers } from '../api/schema'
+import { models, providers, tools } from '../api/schema'
 import { guardDbTarget } from './db-guard'
 
 interface SeedModel {
@@ -28,6 +28,16 @@ interface SeedProvider {
   adapter: string
   baseUrl: string
   apiKeyEnv: string
+}
+
+interface SeedTool {
+  id: string
+  key: string
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+  requiresApproval: boolean
+  sortOrder: number
 }
 
 const SEED_PROVIDERS: SeedProvider[] = [
@@ -56,6 +66,44 @@ const SEED_PROVIDERS: SeedProvider[] = [
 
 const CHAT: ModelCapabilities = { streaming: true, tools: true, structured: true, reasoning: true, vision: false }
 const IMAGE: ModelCapabilities = { streaming: false, tools: false, structured: false, reasoning: false, vision: false }
+
+const SEED_TOOLS: SeedTool[] = [
+  {
+    id: 'tool_generate_image',
+    key: 'generate_image',
+    name: 'Generate image',
+    description: 'Generates one image from a text prompt using the workspace image model and stores it as an artifact.',
+    parameters: {
+      type: 'object',
+      properties: {
+        prompt: { type: 'string', description: 'What the image should depict.' },
+        size: { type: 'string', enum: ['1024x1024', '1536x1024', '1024x1536'], description: 'Image dimensions.' },
+        quality: { type: 'string', enum: ['auto', 'low', 'medium', 'high', 'xhigh', 'max'], description: 'Render quality.' },
+      },
+      required: ['prompt'],
+      additionalProperties: false,
+    },
+    requiresApproval: true,
+    sortOrder: 10,
+  },
+  {
+    id: 'tool_save_memory',
+    key: 'save_memory',
+    name: 'Save memory',
+    description: 'Stores a durable fact about the user as a long-term memory injected into future conversations.',
+    parameters: {
+      type: 'object',
+      properties: {
+        content: { type: 'string', description: 'The fact to remember, one concise sentence.' },
+        pinned: { type: 'boolean', description: 'Pin the memory so it outranks others.' },
+      },
+      required: ['content'],
+      additionalProperties: false,
+    },
+    requiresApproval: true,
+    sortOrder: 20,
+  },
+]
 
 const SEED_MODELS: SeedModel[] = [
   {
@@ -249,8 +297,13 @@ async function main() {
     await db.insert(models).values(model).onConflictDoUpdate({ target: models.id, set: rest })
   }
 
+  for (const tool of SEED_TOOLS) {
+    const { id: _toolId, ...rest } = tool
+    await db.insert(tools).values(tool).onConflictDoUpdate({ target: tools.id, set: rest })
+  }
+
   console.log(
-    `Seeded ${SEED_PROVIDERS.length} providers and ${SEED_MODELS.length} models (Groq verified against the live catalog 2026-11-08; OpenAI, Anthropic, and GPT Image from official published pricing 2026-11-08).`,
+    `Seeded ${SEED_PROVIDERS.length} providers, ${SEED_MODELS.length} models, and ${SEED_TOOLS.length} builtin tools (Groq verified against the live catalog 2026-11-08; OpenAI, Anthropic, and GPT Image from official published pricing 2026-11-08).`,
   )
 }
 

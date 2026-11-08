@@ -160,6 +160,46 @@ export const artifacts = pgTable(
   ],
 )
 
+export const TOOL_KINDS = ['builtin'] as const
+export type ToolKind = (typeof TOOL_KINDS)[number]
+
+export const tools = pgTable(
+  tn('tools'),
+  {
+    id: text('id').primaryKey(),
+    key: text('key').notNull(),
+    name: text('name').notNull(),
+    description: text('description').notNull(),
+    parameters: jsonb('parameters').$type<Record<string, unknown>>().notNull(),
+    kind: text('kind').$type<ToolKind>().notNull().default('builtin'),
+    requiresApproval: boolean('requires_approval').notNull().default(true),
+    active: boolean('active').notNull().default(true),
+    sortOrder: integer('sort_order').notNull().default(0),
+    ...trio(),
+  },
+  (t) => [
+    uniqueIndex(tn('tools_key_unique'))
+      .on(t.key)
+      .where(sql`deleted_at is null`),
+  ],
+)
+
+export const agents = pgTable(
+  tn('agents'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => baUser.id),
+    name: text('name').notNull(),
+    description: text('description'),
+    instructions: text('instructions').notNull().default(''),
+    modelId: text('model_id').references(() => models.id),
+    toolIds: jsonb('tool_ids').$type<string[]>().notNull().default([]),
+    active: boolean('active').notNull().default(true),
+    ...trio(),
+  },
+  (t) => [index(tn('agents_user_idx')).on(t.userId, t.updatedAt)],
+)
+
 export const attachments = pgTable(
   tn('attachments'),
   {

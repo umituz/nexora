@@ -73,6 +73,29 @@ export interface ArtifactRow {
   updatedAt: string
 }
 
+export interface ToolRow {
+  id: string
+  key: string
+  name: string
+  description: string
+  parameters: Record<string, unknown>
+  kind: 'builtin'
+  requiresApproval: boolean
+}
+
+export interface AgentRow {
+  id: string
+  userId: string
+  name: string
+  description: string | null
+  instructions: string
+  modelId: string | null
+  toolIds: string[]
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export interface StreamCallbacks {
   onDelta: (channel: 'answer' | 'reasoning', text: string) => void
   onUsage?: (usage: TokenUsage) => void
