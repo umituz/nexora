@@ -4,7 +4,8 @@ Nexora is a unified AI workspace built as a fleet-standard single-origin applica
 one Cloudflare Worker serving the compiled SPA (via ASSETS binding) and the Hono API
 (`/api/*`). All architecture decisions follow the fleet playbook (`../saas-build/SaaS_BUILD.md`)
 with the pilot project (hangora) as the comparison base, plus one deliberate divergence:
-the AI layer is implemented project-locally (see AI-CORE.md).
+the AI layer is implemented project-locally (see AI-CORE.md; long-term extraction path in
+INFRA-EVOLUTION.md).
 
 ## Topology
 

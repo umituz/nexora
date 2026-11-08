@@ -101,9 +101,12 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
       model exists in any configured catalog, uploads degrade to stored binary
       (capability posture documented in AI-CORE.md).
 
-## Phase 9 — Infrastructure evolution
+## Phase 9 — Infrastructure evolution ✅
 
-- [ ] Self-hosted inference evaluation, open-weight models, module extraction into Umituz packages.
+- [x] Self-hosted inference evaluation, open-weight models, module extraction into
+      Umituz packages (INFRA-EVOLUTION.md — live-verified zero-code-change onboarding
+      of an OpenAI-compatible self-hosted endpoint; extraction planned, not executed,
+      per the project-local build rule).
 
 ## Standing rules (from fleet SaaS_BUILD.md — binding)
 
