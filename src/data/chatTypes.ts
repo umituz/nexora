@@ -1,4 +1,10 @@
-import type { AssistantToolCall, ConversationSettings, MessageStatus, TokenUsage } from '@shared/ai/contracts'
+import type {
+  AssistantToolCall,
+  ConversationSettings,
+  MessageStatus,
+  PublicToolCall,
+  TokenUsage,
+} from '@shared/ai/contracts'
 
 export type { PublicToolCall } from '@shared/ai/contracts'
 
@@ -105,6 +111,7 @@ export interface StreamCallbacks {
   onDelta: (channel: 'answer' | 'reasoning', text: string) => void
   onUsage?: (usage: TokenUsage) => void
   onDone?: (messageId: string) => void
+  onToolCall?: (toolCall: PublicToolCall) => void
   onError?: (code: string, message: string) => void
 }
 

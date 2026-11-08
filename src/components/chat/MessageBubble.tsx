@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
 import { AlertCircle, Check, Copy, Pencil, RotateCcw, Sparkles, User } from 'lucide-react'
 import { useState } from 'react'
-import type { MessageStatus, TokenUsage } from '@shared/ai/contracts'
+import type { MessageStatus, PublicToolCall, TokenUsage } from '@shared/ai/contracts'
 import { useT } from '@/i18n'
 import { MessageContent } from './MessageContent'
 import { ReasoningBlock } from './ReasoningBlock'
+import { ToolCallCard } from './ToolCallCard'
 
 export interface ChatMessageView {
   id: string
@@ -22,9 +23,21 @@ interface MessageBubbleProps {
   canRegenerate?: boolean
   onEdit?: () => void
   canEdit?: boolean
+  toolCalls?: PublicToolCall[]
+  onResolveToolCall?: (id: string, approved: boolean) => void
+  resolving?: boolean
 }
 
-export function MessageBubble({ message, onRegenerate, canRegenerate = false, onEdit, canEdit = false }: MessageBubbleProps): ReactNode {
+export function MessageBubble({
+  message,
+  onRegenerate,
+  canRegenerate = false,
+  onEdit,
+  canEdit = false,
+  toolCalls = [],
+  onResolveToolCall,
+  resolving = false,
+}: MessageBubbleProps): ReactNode {
   const t = useT()
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
@@ -62,6 +75,19 @@ export function MessageBubble({ message, onRegenerate, canRegenerate = false, on
           ) : message.status === 'streaming' ? (
             <span className="inline-block h-4 w-2 animate-pulse rounded-sm bg-muted-foreground/60" />
           ) : null}
+          {toolCalls.length > 0 && (
+            <div className="space-y-2">
+              {message.content.length > 0 && <div className="h-1" />}
+              {toolCalls.map((toolCall) => (
+                <ToolCallCard
+                  key={toolCall.id}
+                  toolCall={toolCall}
+                  onResolve={onResolveToolCall}
+                  disabled={resolving}
+                />
+              ))}
+            </div>
+          )}
         </div>
         {message.error && (
           <p className="flex items-center gap-1.5 text-xs text-destructive">

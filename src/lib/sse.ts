@@ -1,4 +1,4 @@
-import type { GenerationSettings, StreamEvent } from '@shared/ai/contracts'
+import type { GenerationSettings, PublicToolCall, StreamEvent } from '@shared/ai/contracts'
 import type { StreamCallbacks, StreamHandle } from '@/data/chatTypes'
 
 export interface StreamRequestBody {
@@ -33,30 +33,66 @@ export function streamChat(
       return
     }
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value, { stream: true })
-
-      let separator = buffer.indexOf('\n\n')
-      while (separator !== -1) {
-        const rawEvent = buffer.slice(0, separator)
-        buffer = buffer.slice(separator + 2)
-        separator = buffer.indexOf('\n\n')
-        const event = parseSseEvent(rawEvent)
-        if (!event) continue
-        dispatch(event, callbacks)
-      }
-    }
+    await readSseResponse(response, callbacks)
   })()
 
   return {
     promise,
     abort: () => controller.abort(),
+  }
+}
+
+export async function resolveToolCall(
+  conversationId: string,
+  toolCallId: string,
+  approved: boolean,
+  callbacks: StreamCallbacks,
+): Promise<boolean> {
+  const response = await fetch(`/api/conversations/${conversationId}/tool-calls/${toolCallId}/resolve`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ approved }),
+  })
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string; code?: string } | null
+    callbacks.onError?.(payload?.code ?? 'request_failed', payload?.error ?? 'Request failed')
+    return false
+  }
+
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('text/event-stream') || !response.body) {
+    return false
+  }
+
+  await readSseResponse(response, callbacks)
+  return true
+}
+
+async function readSseResponse(response: Response, callbacks: StreamCallbacks): Promise<void> {
+  if (!response.body) {
+    callbacks.onError?.('request_failed', 'The server returned an empty stream.')
+    return
+  }
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let separator = buffer.indexOf('\n\n')
+    while (separator !== -1) {
+      const rawEvent = buffer.slice(0, separator)
+      buffer = buffer.slice(separator + 2)
+      separator = buffer.indexOf('\n\n')
+      const event = parseSseEvent(rawEvent)
+      if (!event) continue
+      dispatch(event, callbacks)
+    }
   }
 }
 
@@ -81,6 +117,9 @@ function dispatch(event: StreamEvent, callbacks: StreamCallbacks): void {
     case 'usage':
       callbacks.onUsage?.(event.usage)
       break
+    case 'tool_call':
+      callbacks.onToolCall?.(event.toolCall)
+      break
     case 'done':
       callbacks.onDone?.(event.messageId)
       break
@@ -89,3 +128,5 @@ function dispatch(event: StreamEvent, callbacks: StreamCallbacks): void {
       break
   }
 }
+
+export type { PublicToolCall }

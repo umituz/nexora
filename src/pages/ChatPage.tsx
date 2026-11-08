@@ -5,10 +5,11 @@ import { apiFetch } from '@umituz/web-hono/client'
 import { usePageTitle } from '@umituz/web-dashboard'
 import { Button, NativeSelect } from '@umituz/web-design-system'
 import type { NativeSelectOption } from '@umituz/web-design-system'
-import { Paperclip } from 'lucide-react'
+import { Bot, Paperclip } from 'lucide-react'
+import type { PublicToolCall } from '@shared/ai/contracts'
 import type { AttachmentRow, ConversationRow, MessageRow, StreamHandle } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
-import { streamChat } from '@/lib/sse'
+import { resolveToolCall, streamChat } from '@/lib/sse'
 import { AttachmentChips } from '@/components/chat/AttachmentChips'
 import { Composer } from '@/components/chat/Composer'
 import { ConversationList } from '@/components/chat/ConversationList'
@@ -39,13 +40,16 @@ export default function ChatPage(): ReactNode {
   const conversations = useCollection('conversations')
   const models = useCollection('models')
   const projects = useCollection('projects')
+  const agents = useCollection('agents')
 
   const [messages, setMessages] = useState<ChatMessageView[]>([])
   const [attachments, setAttachments] = useState<AttachmentRow[]>([])
+  const [toolCallRows, setToolCallRows] = useState<PublicToolCall[]>([])
   const [attachmentError, setAttachmentError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [resolving, setResolving] = useState(false)
   const [editing, setEditing] = useState<ChatMessageView | null>(null)
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const handleRef = useRef<StreamHandle | null>(null)
@@ -57,16 +61,20 @@ export default function ChatPage(): ReactNode {
   usePageTitle(t('nav.items.chat'))
 
   const active = conversations.find((row) => row.id === conversationId)
+  const boundAgent = agents.find((row) => row.id === active?.agentId)
 
   useEffect(() => {
     const chatModels = models.filter((model) => model.outputTypes.includes('text'))
-    setSelectedModelId(active?.modelId ?? chatModels.find((model) => model.isDefault)?.id ?? chatModels[0]?.id ?? null)
-  }, [active?.modelId, models])
+    setSelectedModelId(
+      active?.modelId ?? boundAgent?.modelId ?? chatModels.find((model) => model.isDefault)?.id ?? chatModels[0]?.id ?? null,
+    )
+  }, [active?.modelId, active?.agentId, agents, boundAgent?.modelId, models])
 
   useEffect(() => {
     if (!conversationId) {
       setMessages([])
       setAttachments([])
+      setToolCallRows([])
       return
     }
     setEditing(null)
@@ -76,16 +84,19 @@ export default function ChatPage(): ReactNode {
     Promise.all([
       apiFetch<MessageRow[]>(`/api/conversations/${conversationId}/messages`),
       apiFetch<AttachmentRow[]>(`/api/conversations/${conversationId}/attachments`),
+      apiFetch<PublicToolCall[]>(`/api/conversations/${conversationId}/tool-calls`),
     ])
-      .then(([messageRows, attachmentRows]) => {
+      .then(([messageRows, attachmentRows, toolCallData]) => {
         if (!alive) return
         setMessages(toViews(messageRows))
         setAttachments(attachmentRows)
+        setToolCallRows(toolCallData)
       })
       .catch(() => {
         if (alive) {
           setMessages([])
           setAttachments([])
+          setToolCallRows([])
         }
       })
       .finally(() => {
@@ -124,6 +135,15 @@ export default function ChatPage(): ReactNode {
     })
   }, [])
 
+  const refreshThread = useCallback(async (id: string) => {
+    const [rows, calls] = await Promise.all([
+      apiFetch<MessageRow[]>(`/api/conversations/${id}/messages`).catch(() => null),
+      apiFetch<PublicToolCall[]>(`/api/conversations/${id}/tool-calls`).catch(() => null),
+    ])
+    if (rows) setMessages(toViews(rows))
+    if (calls) setToolCallRows(calls)
+  }, [])
+
   const runStream = useCallback(
     async (conversationRow: ConversationRow, content: string | null, mode: 'append' | 'regenerate' = 'append') => {
       setStreaming(true)
@@ -145,6 +165,10 @@ export default function ChatPage(): ReactNode {
           onUsage: (usage) => patchLast({ usage }),
           onError: (code, message) => patchLast({ status: 'error', error: { code, message } }),
           onDone: (messageId) => patchLast({ id: messageId, status: 'complete' }),
+          onToolCall: (toolCall) => {
+            setToolCallRows((prev) => [...prev, toolCall])
+            patchLast({ status: 'complete' })
+          },
         },
       )
       handleRef.current = handle
@@ -158,12 +182,55 @@ export default function ChatPage(): ReactNode {
         if (stoppedRef.current) {
           stoppedRef.current = false
         } else if (conversationId === conversationRow.id) {
-          const rows = await apiFetch<MessageRow[]>(`/api/conversations/${conversationRow.id}/messages`).catch(() => null)
-          if (rows) setMessages(toViews(rows))
+          await refreshThread(conversationRow.id)
         }
       }
     },
-    [appendDelta, conversationId, patchLast, selectedModelId],
+    [appendDelta, conversationId, patchLast, refreshThread, selectedModelId],
+  )
+
+  const resolveToolApproval = useCallback(
+    async (toolCallId: string, approved: boolean) => {
+      if (!active || streaming || resolving) return
+      setResolving(true)
+      setStreaming(true)
+      streamingConversationRef.current = active.id
+      setMessages((prev) => [
+        ...prev,
+        { id: 'streaming', role: 'assistant', content: '', reasoning: '', status: 'streaming', error: null, usage: null },
+      ])
+
+      try {
+        await resolveToolCall(active.id, toolCallId, approved, {
+          onDelta: appendDelta,
+          onUsage: (usage) => patchLast({ usage }),
+          onError: (code, message) => patchLast({ status: 'error', error: { code, message } }),
+          onDone: (messageId) => patchLast({ id: messageId, status: 'complete' }),
+        })
+      } catch {
+        return
+      } finally {
+        streamingConversationRef.current = null
+        setStreaming(false)
+        setResolving(false)
+        await store.refresh(['conversations', 'usage', 'usageBreakdown'])
+        if (conversationId === active.id) await refreshThread(active.id)
+      }
+    },
+    [active, appendDelta, conversationId, patchLast, refreshThread, resolving, streaming],
+  )
+
+  const changeAgent = useCallback(
+    async (agentId: string) => {
+      if (!active) return
+      try {
+        await apiFetch(`/api/conversations/${active.id}`, { method: 'PATCH', json: { agentId: agentId || null } })
+        await store.refresh(['conversations'])
+      } catch {
+        return
+      }
+    },
+    [active],
   )
 
   const editAndResend = useCallback(
@@ -344,6 +411,28 @@ export default function ChatPage(): ReactNode {
                 ]}
               />
             )}
+            {active && agents.length > 0 && (
+              <div className="relative">
+                <Bot
+                  size={12}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
+                />
+                <NativeSelect
+                  value={active.agentId ?? ''}
+                  onChange={(event) => void changeAgent(event.target.value)}
+                  disabled={streaming}
+                  aria-label={t('chat.agent')}
+                  className="h-9 max-w-44 pl-7 text-xs"
+                  options={[
+                    { value: '', label: t('chat.noAgent') },
+                    ...agents.map(
+                      (agent): NativeSelectOption => ({ value: agent.id, label: agent.name }),
+                    ),
+                  ]}
+                />
+              </div>
+            )}
             <div className="w-56">
               <ModelPicker models={models} value={selectedModelId} onChange={setSelectedModelId} disabled={streaming} />
             </div>
@@ -369,6 +458,9 @@ export default function ChatPage(): ReactNode {
               onRegenerate={regenerate}
               canEdit={!streaming && !editing && message.role === 'user'}
               onEdit={() => startEdit(message)}
+              toolCalls={toolCallRows.filter((call) => call.messageId === message.id)}
+              onResolveToolCall={(id, approved) => void resolveToolApproval(id, approved)}
+              resolving={resolving}
             />
           ))}
         </div>
