@@ -14,6 +14,7 @@ api/ai/
 ├── providers/
 │   ├── openai-compatible.ts  # adapter: OpenAI chat-completions wire (Groq, OpenAI), SSE, error mapping
 │   ├── images.ts             # adapter: OpenAI Images API wire (gpt-image family), b64 payload, usage
+│   ├── embeddings.ts         # adapter: OpenAI embeddings wire, index-ordered, batch-complete check
 │   ├── anthropic.ts          # adapter: Anthropic Messages API wire (own SSE event format)
 │   └── index.ts              # adapter registry: adapter kind (from provider row) → factory
 ├── memories.ts         # long-term memory selection (pinned-first, recency, caps) + loader
@@ -24,6 +25,12 @@ api/ai/
 ├── streaming.ts        # provider-independent SSE event protocol + cancellation
 ├── failover.ts         # pure policy: when a failed attempt may retry on another provider
 ├── execution.ts        # generation lifecycle orchestration (validate → context → stream → persist → usage)
+├── chunker.ts          # pure: paragraph-aware text splitting for knowledge indexing
+├── knowledge.ts        # document/chunk repository: index, pgvector KNN search, list/delete
+├── search.ts           # web search capability module (Tavily), decoupled from chat
+├── tools.ts            # builtin tool arg schemas + executors (approval-gated loop)
+├── tasks.ts            # task engine: queue, claim, retry/backoff policy, logs, kicks
+├── task-handlers.ts    # builtin task consumers (index_document)
 ├── usage.ts            # cost computation from registry pricing; usage record construction
 └── errors.ts           # AiError taxonomy; normalization of provider HTTP/stream failures
 ```
@@ -265,22 +272,61 @@ mid-stream failures. Provider response bodies are logged server-side only.
   available one (seeded: OpenAI `text-embedding-3-small`, 1536 dims,
   $0.02/MTok input). `embedTexts` batches at 32 inputs per call and records
   usage with the standard cost pipeline.
-- `api/ai/knowledge.ts`: `indexDocument` (chunk → embed → insert, all or
-  nothing), `searchKnowledge` (embed query → pgvector KNN
+- `api/ai/knowledge.ts`: `createPendingDocument` (status `indexing`),
+  `executeIndexing` (chunk → embed → insert, all or nothing),
+  `markDocumentFailed`, `searchKnowledge` (embed query → pgvector KNN
   `ORDER BY embedding <=> query LIMIT k`, user-scoped, soft-delete aware),
-  plus list/delete. Routes under `/api/documents` (list, create, search,
-  delete); the Knowledge page manages documents and offers a retrieval test
-  box. The `search_knowledge` builtin tool exposes retrieval to agents
-  through the approval-gated loop.
+  plus list/delete. Routes under `/api/documents`; indexing runs as a
+  background task (below), so create returns 202 with the document and a
+  `taskId` and the Knowledge page polls the task until terminal, then
+  refreshes. The `search_knowledge` builtin tool exposes retrieval to
+  agents through the approval-gated loop.
 - Verification tier (2026-11-08): chunker, adapter, and batching are
   unit-tested; the **full pipeline is live-verified against a local stub
   OpenAI-wire embeddings server with real pgvector KNN on Neon** (document
   → 5 chunks → vectors stored; "payroll" query ranks payroll chunks at
   distance 0, onboarding chunks last, and vice versa; UI indexing and
   retrieval box verified in the browser). Without an embedding provider key
-  every surface fails gracefully with 503 "No embedding model is configured
-  for this workspace" (live-verified). **Live OpenAI embeddings are not
-  verified in this workspace** — set `OPENAI_API_KEY` to activate them.
+  search fails gracefully with 503 "No embedding model is configured for
+  this workspace" (live-verified) and an upload is accepted (202) but its
+  task fails terminally with that same message, marking the document
+  `failed` (live-verified). **Live OpenAI embeddings are not verified in
+  this workspace** — set `OPENAI_API_KEY` to activate them.
+
+## Task engine (`api/ai/tasks.ts`)
+
+- Store: `nexora_tasks` (per-user `kind`, `status`, jsonb `payload`/`result`/
+  `logs`, `attempts`/`maxAttempts`, `nextAttemptAt` as ISO text — avoids the
+  timestamptz round-trip hazard on Neon). Statuses:
+  `queued → running → succeeded | failed`, plus `cancelled`.
+- Policies per kind (`TASK_POLICIES`): `index_document` retries up to 3
+  attempts with exponential backoff (2 s base, doubling, capped at 30 s).
+  The decision functions (`nextAttemptDelayMs`, `canStart`, `planFailure`)
+  are pure and unit-tested.
+- Execution: `runTask` claims a task with a guarded update
+  (`WHERE status = 'queued'`), so a double kick can never run it twice;
+  each attempt appends a timestamped log entry (jsonb concat), failures
+  either re-queue with a scheduled retry or terminally fail.
+- Scheduling: this Worker runs no cron, so due tasks are kicked by traffic —
+  `GET /api/tasks` and `GET /api/tasks/:id` schedule due queued tasks via
+  `executionCtx.waitUntil(runTask(...))`, and enqueue kicks attempt 1
+  immediately. While nobody polls, retries simply wait.
+- Endpoints: list (user-scoped), get, `POST /:id/cancel` (queued-only, else
+  409), `POST /:id/retry` (failed **or** cancelled — resets attempts/error
+  and kicks immediately; a cancelled task's document would otherwise be
+  stranded in `indexing`).
+- First consumer: `index_document` (create-pending → chunk → embed →
+  ready, or `markDocumentFailed` on every failed attempt). Tasks are audit
+  history — deleting a document does not delete its task rows (same stance
+  as usage records).
+- Verification (2026-11-08, live against the stub embeddings provider):
+  async happy path (202 → succeeded attempt 1 → document ready → KNN
+  correct), retry cycle (provider down: attempts 1→2→3 with poll-driven
+  kicks and 2 s/4 s backoff → terminal failed, document `failed` with the
+  error message), manual retry (failed → succeeded, document ready), cancel
+  mid-backoff (queued → cancelled → retry-from-cancelled → succeeded), and
+  the no-key degradation path above. UI polling and the status chip
+  (Indexing → Ready) verified in the browser.
 
 ## What stays out
 

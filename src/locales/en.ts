@@ -199,6 +199,7 @@ const en = {
     textLabel: 'Document text',
     textPlaceholder: 'Paste the document text to chunk, embed, and index…',
     indexing: 'Indexing…',
+    status: { indexing: 'Indexing…', ready: 'Ready', failed: 'Failed' },
     chunksLabel: '{{count}} chunks',
     charsLabel: '{{count}} characters',
     indexFailed: 'Indexing failed',

@@ -275,6 +275,9 @@ export const memories = pgTable(
 
 export const EMBEDDING_DIMENSIONS = 1536
 
+export const DOCUMENT_STATUSES = ['indexing', 'ready', 'failed'] as const
+export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number]
+
 export const documents = pgTable(
   tn('documents'),
   {
@@ -283,9 +286,11 @@ export const documents = pgTable(
       .notNull()
       .references(() => baUser.id),
     title: text('title').notNull(),
-    charCount: integer('char_count').notNull(),
-    chunkCount: integer('chunk_count').notNull(),
+    status: text('status').$type<DocumentStatus>().notNull().default('indexing'),
+    charCount: integer('char_count').notNull().default(0),
+    chunkCount: integer('chunk_count').notNull().default(0),
     modelId: text('model_id').references(() => models.id),
+    errorMessage: text('error_message'),
     ...trio(),
   },
   (t) => [index(tn('documents_user_idx')).on(t.userId, t.createdAt)],
@@ -307,4 +312,34 @@ export const documentChunks = pgTable(
     ...trio(),
   },
   (t) => [index(tn('document_chunks_document_idx')).on(t.documentId, t.ordinal)],
+)
+
+export const TASK_STATUSES = ['queued', 'running', 'succeeded', 'failed', 'cancelled'] as const
+export type TaskStatus = (typeof TASK_STATUSES)[number]
+
+export interface TaskLogEntry {
+  at: string
+  level: 'info' | 'error'
+  message: string
+}
+
+export const tasks = pgTable(
+  tn('tasks'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    kind: text('kind').notNull(),
+    status: text('status').$type<TaskStatus>().notNull().default('queued'),
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull(),
+    result: jsonb('result').$type<Record<string, unknown>>(),
+    error: text('error'),
+    attempts: integer('attempts').notNull().default(0),
+    maxAttempts: integer('max_attempts').notNull().default(3),
+    nextAttemptAt: text('next_attempt_at'),
+    logs: jsonb('logs').$type<TaskLogEntry[]>().notNull().default([]),
+    ...trio(),
+  },
+  (t) => [index(tn('tasks_user_idx')).on(t.userId, t.createdAt)],
 )

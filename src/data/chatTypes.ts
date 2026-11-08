@@ -97,10 +97,26 @@ export interface ToolRow {
 export interface DocumentRow {
   id: string
   title: string
+  status: 'indexing' | 'ready' | 'failed'
   charCount: number
   chunkCount: number
   modelId: string | null
+  errorMessage: string | null
   createdAt: string
+}
+
+export interface TaskRow {
+  id: string
+  kind: string
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+  result: Record<string, unknown> | null
+  error: string | null
+  attempts: number
+  maxAttempts: number
+  nextAttemptAt: string | null
+  logs: { at: string; level: 'info' | 'error'; message: string }[]
+  createdAt: string
+  updatedAt: string
 }
 
 export interface KnowledgeHitRow {

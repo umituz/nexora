@@ -5,11 +5,15 @@ import { validateJson } from '@umituz/web-hono/validator'
 import { z } from 'zod'
 import type { Env } from '../env'
 import { getDb } from '../db'
-import { KNOWLEDGE_MAX_RESULTS, indexDocument, listDocuments, searchKnowledge, deleteDocument } from '../ai/knowledge'
+import { KNOWLEDGE_MAX_RESULTS, listDocuments, searchKnowledge, deleteDocument, createPendingDocument } from '../ai/knowledge'
+import { enqueueTask, runTask } from '../ai/tasks'
+import { registerBuiltinTaskHandlers } from '../ai/task-handlers'
 import { CHUNK_TEXT_LIMIT } from '../ai/chunker'
 import { AiError } from '../ai/errors'
 import { AI_ERROR_STATUS } from './chat'
 import { requireUser } from '../session'
+
+registerBuiltinTaskHandlers()
 
 export const documentsRouter = new Hono<{ Bindings: Env }>()
 
@@ -18,7 +22,6 @@ const TITLE_MAX = 200
 const createSchema = z.object({
   title: z.string().min(1).max(TITLE_MAX),
   text: z.string().min(1).max(CHUNK_TEXT_LIMIT),
-  modelId: z.string().nullish(),
 })
 
 const searchSchema = z.object({
@@ -37,19 +40,15 @@ documentsRouter.post('/', validator('json', validateJson(createSchema, 'Invalid 
   const db = getDb(c.env)
   const body = c.req.valid('json')
 
-  try {
-    const document = await indexDocument(db, c.env, {
-      userId: user.id,
-      title: body.title,
-      text: body.text,
-      modelId: body.modelId ?? null,
-    })
-    return c.json(document, 201)
-  } catch (err) {
-    if (err instanceof ApiError) return c.json({ error: err.message }, err.status)
-    if (err instanceof AiError) return c.json({ error: err.userMessage, code: err.code }, AI_ERROR_STATUS[err.code])
-    throw err
-  }
+  const document = await createPendingDocument(db, { userId: user.id, title: body.title })
+  const task = await enqueueTask(db, {
+    userId: user.id,
+    kind: 'index_document',
+    payload: { documentId: document.id, text: body.text },
+  })
+  c.executionCtx.waitUntil(runTask(db, c.env, task.id))
+
+  return c.json({ document, taskId: task.id }, 202)
 })
 
 documentsRouter.post('/search', validator('json', validateJson(searchSchema, 'Invalid search payload')), async (c) => {

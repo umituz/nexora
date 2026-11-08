@@ -1,12 +1,14 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiClientError, apiFetch } from '@umituz/web-hono/client'
 import { usePageTitle } from '@umituz/web-dashboard'
 import { Button, Input, Textarea } from '@umituz/web-design-system'
 import { Search } from 'lucide-react'
-import type { KnowledgeHitRow } from '@/data/chatTypes'
+import type { KnowledgeHitRow, TaskRow } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
 import { useT } from '@/i18n'
+
+const TASK_POLL_MS = 1500
 
 export default function KnowledgePage(): ReactNode {
   const t = useT()
@@ -17,6 +19,7 @@ export default function KnowledgePage(): ReactNode {
   const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pollTaskId, setPollTaskId] = useState<string | null>(null)
 
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
@@ -24,6 +27,25 @@ export default function KnowledgePage(): ReactNode {
   const [searchError, setSearchError] = useState<string | null>(null)
 
   usePageTitle(t('nav.items.knowledge'))
+
+  useEffect(() => {
+    if (!pollTaskId) return
+    const timer = setInterval(() => {
+      void (async () => {
+        try {
+          const task = await apiFetch<TaskRow>(`/api/tasks/${pollTaskId}`)
+          if (task.status === 'succeeded' || task.status === 'failed' || task.status === 'cancelled') {
+            clearInterval(timer)
+            setPollTaskId(null)
+            await store.refresh(['documents'])
+          }
+        } catch {
+          return
+        }
+      })()
+    }, TASK_POLL_MS)
+    return () => clearInterval(timer)
+  }, [pollTaskId])
 
   const messageOf = useCallback((err: unknown, fallback: string) => {
     if (err instanceof ApiClientError) return err.message
@@ -35,10 +57,11 @@ export default function KnowledgePage(): ReactNode {
     setBusy(true)
     setError(null)
     try {
-      await apiFetch('/api/documents', { method: 'POST', json: { title: title.trim(), text } })
+      const created = await apiFetch<{ taskId: string }>('/api/documents', { method: 'POST', json: { title: title.trim(), text } })
       setTitle('')
       setText('')
       setShowForm(false)
+      setPollTaskId(created.taskId)
       await store.refresh(['documents'])
     } catch (err) {
       setError(messageOf(err, t('knowledge.indexFailed')))
@@ -140,10 +163,26 @@ export default function KnowledgePage(): ReactNode {
           {documents.map((document) => (
             <div key={document.id} className="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-5">
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{document.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-sm font-medium">{document.title}</p>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${
+                      document.status === 'ready'
+                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        : document.status === 'failed'
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {t(`knowledge.status.${document.status}`)}
+                  </span>
+                </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {t('knowledge.charsLabel', { count: document.charCount })} · {t('knowledge.chunksLabel', { count: document.chunkCount })}
                 </p>
+                {document.status === 'failed' && document.errorMessage && (
+                  <p className="mt-1 text-xs text-destructive">{document.errorMessage}</p>
+                )}
               </div>
               <Button variant="ghost" size="sm" onClick={() => void removeDocument(document.id)}>
                 {t('common.delete')}

@@ -13,9 +13,11 @@ const EMBED_BATCH_SIZE = 32
 export interface IndexedDocument {
   id: string
   title: string
+  status: 'indexing' | 'ready' | 'failed'
   charCount: number
   chunkCount: number
   modelId: string | null
+  errorMessage: string | null
   createdAt: Date
 }
 
@@ -26,13 +28,6 @@ export interface KnowledgeHit {
   ordinal: number
   text: string
   distance: number
-}
-
-interface IndexDocumentInput {
-  userId: string
-  title: string
-  text: string
-  modelId?: string | null
 }
 
 export async function embedTexts(
@@ -58,12 +53,41 @@ export async function embedTexts(
   return { vectors, inputTokens: sawTokens ? inputTokens : null }
 }
 
-export async function indexDocument(
+export async function createPendingDocument(db: Db, input: { userId: string; title: string }): Promise<IndexedDocument> {
+  const [row] = await db
+    .insert(documents)
+    .values({
+      id: uid('doc'),
+      userId: input.userId,
+      title: input.title,
+      status: 'indexing',
+    })
+    .returning({
+      id: documents.id,
+      title: documents.title,
+      status: documents.status,
+      charCount: documents.charCount,
+      chunkCount: documents.chunkCount,
+      modelId: documents.modelId,
+      errorMessage: documents.errorMessage,
+      createdAt: documents.createdAt,
+    })
+  return row
+}
+
+export async function markDocumentFailed(db: Db, documentId: string, message: string): Promise<void> {
+  await db
+    .update(documents)
+    .set({ status: 'failed', errorMessage: message, updatedAt: new Date() })
+    .where(eq(documents.id, documentId))
+}
+
+export async function executeIndexing(
   db: Db,
   env: Env,
-  input: IndexDocumentInput,
+  input: { userId: string; documentId: string; text: string },
   adapterOverride?: EmbeddingsAdapter,
-): Promise<IndexedDocument> {
+): Promise<{ chunkCount: number; modelId: string }> {
   if (input.text.length > CHUNK_TEXT_LIMIT) {
     throw ApiError.badRequest(`Document text exceeds ${CHUNK_TEXT_LIMIT} characters`)
   }
@@ -71,7 +95,7 @@ export async function indexDocument(
   const chunks = chunkText(input.text)
   if (chunks.length === 0) throw ApiError.badRequest('Document text is empty after processing')
 
-  const resolved = await resolveEmbeddingModel(db, env, input.modelId ?? null)
+  const resolved = await resolveEmbeddingModel(db, env, null)
   const startedAt = Date.now()
   const { vectors, inputTokens } = await embedTexts(
     env,
@@ -82,36 +106,28 @@ export async function indexDocument(
   )
   const durationMs = Date.now() - startedAt
 
-  const documentId = uid('doc')
-  const [document] = await db
-    .insert(documents)
-    .values({
-      id: documentId,
-      userId: input.userId,
-      title: input.title,
-      charCount: input.text.length,
-      chunkCount: chunks.length,
-      modelId: resolved.model.id,
-    })
-    .returning({
-      id: documents.id,
-      title: documents.title,
-      charCount: documents.charCount,
-      chunkCount: documents.chunkCount,
-      modelId: documents.modelId,
-      createdAt: documents.createdAt,
-    })
-
   await db.insert(documentChunks).values(
     chunks.map((text, ordinal) => ({
       id: uid('chk'),
-      documentId,
+      documentId: input.documentId,
       userId: input.userId,
       ordinal,
       text,
       embedding: vectors[ordinal],
     })),
   )
+
+  await db
+    .update(documents)
+    .set({
+      status: 'ready',
+      charCount: input.text.length,
+      chunkCount: chunks.length,
+      modelId: resolved.model.id,
+      errorMessage: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(documents.id, input.documentId))
 
   if (inputTokens !== null && inputTokens > 0) {
     await db.insert(usageRecords).values({
@@ -130,7 +146,7 @@ export async function indexDocument(
     })
   }
 
-  return document
+  return { chunkCount: chunks.length, modelId: resolved.model.id }
 }
 
 interface RawHit {
@@ -179,9 +195,11 @@ export async function listDocuments(db: Db, userId: string): Promise<IndexedDocu
     .select({
       id: documents.id,
       title: documents.title,
+      status: documents.status,
       charCount: documents.charCount,
       chunkCount: documents.chunkCount,
       modelId: documents.modelId,
+      errorMessage: documents.errorMessage,
       createdAt: documents.createdAt,
     })
     .from(documents)
