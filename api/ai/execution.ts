@@ -11,12 +11,12 @@ import {
   type TokenUsage,
 } from '@shared/ai/contracts'
 import type { Db, Env } from '../env'
-import { conversations, messages, usageRecords } from '../schema'
+import { conversations, messages, projects, usageRecords } from '../schema'
 import { AiError, errorFromUnknown } from './errors'
 import { buildContext } from './context-manager'
 import { resolveModel, type ResolvedModel } from './model-registry'
 import { routeModelRequest, type RoutedRequest } from './model-router'
-import { buildSystemPrompt } from './prompt-engine'
+import { buildSystemPrompt, type ProjectContext } from './prompt-engine'
 import { buildUsageData } from './usage'
 
 export type GenerationMode = 'append' | 'regenerate'
@@ -36,6 +36,7 @@ export interface GenerationInput {
 interface GenerationState {
   conversationModelId: string | null
   conversationSettings: ConversationSettings
+  project: ProjectContext | null
   resolved: ResolvedModel
   routed: RoutedRequest
 }
@@ -89,9 +90,21 @@ async function prepareGeneration(input: GenerationInput): Promise<GenerationStat
   return {
     conversationModelId: conversation.modelId,
     conversationSettings: conversation.settings,
+    project: await loadProjectContext(db, conversation.projectId, userId),
     resolved,
     routed,
   }
+}
+
+async function loadProjectContext(db: Db, projectId: string | null, userId: string): Promise<ProjectContext | null> {
+  if (!projectId) return null
+  const [row] = await db
+    .select({ name: projects.name, instructions: projects.instructions, userId: projects.userId })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), isNull(projects.deletedAt)))
+    .limit(1)
+  if (!row || row.userId !== userId) return null
+  return { name: row.name, instructions: row.instructions ?? '' }
 }
 
 async function dropTrailingAnswers(db: Db, conversationId: string): Promise<void> {
@@ -125,7 +138,7 @@ async function* streamAnswer(input: GenerationInput, state: GenerationState): As
   const { resolved, routed } = state
 
   const history = await loadHistory(db, conversationId)
-  const systemPrompt = buildSystemPrompt({ settings: state.conversationSettings })
+  const systemPrompt = buildSystemPrompt({ settings: state.conversationSettings, project: state.project })
   const context = buildContext(history, systemPrompt, {
     contextWindow: resolved.model.contextWindow,
     maxOutputTokens: routed.settings.maxOutputTokens,

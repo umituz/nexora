@@ -4,9 +4,20 @@ export interface ConversationRow {
   id: string
   userId: string
   title: string
+  projectId: string | null
   modelId: string | null
   isTemporary: boolean
   settings: ConversationSettings
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProjectRow {
+  id: string
+  userId: string
+  name: string
+  description: string | null
+  instructions: string | null
   createdAt: string
   updatedAt: string
 }

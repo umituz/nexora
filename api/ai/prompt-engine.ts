@@ -1,6 +1,6 @@
 import type { ConversationSettings } from '@shared/ai/contracts'
 
-export const SYSTEM_PROMPT_VERSION = 1
+export const SYSTEM_PROMPT_VERSION = 2
 
 const IDENTITY = [
   'You are Nexora, a helpful AI assistant inside the Nexora AI workspace.',
@@ -9,15 +9,42 @@ const IDENTITY = [
   'For uncertain factual claims, communicate the level of confidence instead of inventing details.',
 ].join(' ')
 
+export interface ProjectContext {
+  name: string
+  instructions: string
+}
+
 export interface SystemPromptInput {
   settings?: ConversationSettings
+  project?: ProjectContext | null
+  attachments?: readonly { name: string; text: string }[]
+  memories?: readonly string[]
   now?: Date
 }
 
 export function buildSystemPrompt(input: SystemPromptInput = {}): string {
   const now = input.now ?? new Date()
   const parts = [IDENTITY, `Current date: ${now.toISOString().slice(0, 10)}.`]
+
+  const projectInstructions = input.project?.instructions?.trim()
+  if (projectInstructions) {
+    parts.push(`The user is working inside the project "${input.project!.name}". Follow these project instructions:\n${projectInstructions}`)
+  }
+
   const extra = input.settings?.systemExtra?.trim()
   if (extra) parts.push(`Workspace instructions from the user:\n${extra}`)
+
+  if (input.memories && input.memories.length > 0) {
+    const bullets = input.memories.map((memory) => `- ${memory}`).join('\n')
+    parts.push(`Long-term memories about the user (apply when relevant):\n${bullets}`)
+  }
+
+  if (input.attachments && input.attachments.length > 0) {
+    const blocks = input.attachments
+      .map((attachment) => `--- begin attachment: ${attachment.name} ---\n${attachment.text}\n--- end attachment: ${attachment.name} ---`)
+      .join('\n\n')
+    parts.push(`Attached files for this conversation:\n${blocks}`)
+  }
+
   return parts.join('\n\n')
 }

@@ -59,6 +59,21 @@ export const models = pgTable(
   ],
 )
 
+export const projects = pgTable(
+  tn('projects'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    name: text('name').notNull(),
+    description: text('description'),
+    instructions: text('instructions'),
+    ...trio(),
+  },
+  (t) => [index(tn('projects_user_idx')).on(t.userId, t.updatedAt)],
+)
+
 export const conversations = pgTable(
   tn('conversations'),
   {
@@ -67,6 +82,7 @@ export const conversations = pgTable(
       .notNull()
       .references(() => baUser.id),
     title: text('title').notNull(),
+    projectId: text('project_id').references(() => projects.id),
     modelId: text('model_id').references(() => models.id),
     isTemporary: boolean('is_temporary').notNull().default(false),
     settings: jsonb('settings').$type<ConversationSettings>().notNull().default({}),

@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { apiFetch } from '@umituz/web-hono/client'
 import { usePageTitle } from '@umituz/web-dashboard'
+import { NativeSelect } from '@umituz/web-design-system'
+import type { NativeSelectOption } from '@umituz/web-design-system'
 import type { ConversationRow, MessageRow, StreamHandle } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
 import { streamChat } from '@/lib/sse'
@@ -30,6 +32,7 @@ export default function ChatPage(): ReactNode {
   const { conversationId } = useParams()
   const conversations = useCollection('conversations')
   const models = useCollection('models')
+  const projects = useCollection('projects')
 
   const [messages, setMessages] = useState<ChatMessageView[]>([])
   const [loading, setLoading] = useState(false)
@@ -223,6 +226,19 @@ export default function ChatPage(): ReactNode {
     [conversationId, navigate],
   )
 
+  const changeProject = useCallback(
+    async (projectId: string) => {
+      if (!active) return
+      try {
+        await apiFetch(`/api/conversations/${active.id}`, { method: 'PATCH', json: { projectId: projectId || null } })
+        await store.refresh(['conversations'])
+      } catch {
+        return
+      }
+    },
+    [active],
+  )
+
   const lastAssistantComplete =
     messages.length > 0 && messages[messages.length - 1].role === 'assistant' && messages[messages.length - 1].status === 'complete'
 
@@ -236,8 +252,25 @@ export default function ChatPage(): ReactNode {
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold">{active?.title || t('chat.untitled')}</h1>
           </div>
-          <div className="w-56 shrink-0">
-            <ModelPicker models={models} value={selectedModelId} onChange={setSelectedModelId} disabled={streaming} />
+          <div className="flex shrink-0 items-center gap-3">
+            {active && (
+              <NativeSelect
+                value={active.projectId ?? ''}
+                onChange={(event) => void changeProject(event.target.value)}
+                disabled={streaming}
+                aria-label={t('projects.project')}
+                className="h-9 max-w-44 text-xs"
+                options={[
+                  { value: '', label: t('projects.none') },
+                  ...projects.map(
+                    (project): NativeSelectOption => ({ value: project.id, label: project.name }),
+                  ),
+                ]}
+              />
+            )}
+            <div className="w-56">
+              <ModelPicker models={models} value={selectedModelId} onChange={setSelectedModelId} disabled={streaming} />
+            </div>
           </div>
         </div>
 

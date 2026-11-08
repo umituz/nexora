@@ -2,6 +2,7 @@ import { createApi } from '@umituz/web-hono'
 import type { Env } from './env'
 import { conversationsRouter } from './routes/conversations'
 import { modelsRouter } from './routes/models'
+import { projectsRouter } from './routes/projects'
 import { chatRouter } from './routes/chat'
 import { usageRouter } from './routes/usage'
 import { authRouter } from './auth'
@@ -15,6 +16,7 @@ export default createApi<Env>({
   routers: [
     ['/conversations', conversationsRouter],
     ['/models', modelsRouter],
+    ['/projects', projectsRouter],
     ['/', chatRouter],
     ['/usage', usageRouter],
     ['/auth', authRouter],
