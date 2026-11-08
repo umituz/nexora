@@ -90,7 +90,12 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 
 ## Phase 8 — Multimodal
 
-- [ ] Image understanding, audio input/transcription, TTS, video — provider-capability driven.
+- [x] Image understanding (vision input) — provider-capability driven; attachment
+      images ride on `AdapterRequest.images`, capability gate 400, wire shapes
+      unit-tested per adapter.
+- [ ] Audio input/transcription (whisper-large-v3-turbo on Groq).
+- [ ] TTS (provider-capability driven).
+- [ ] Video — capability-gated; document registry/models with no video input support.
 
 ## Phase 9 — Infrastructure evolution
 

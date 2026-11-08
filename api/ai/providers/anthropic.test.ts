@@ -135,4 +135,29 @@ describe('createAnthropicAdapter', () => {
       }
     }).rejects.toMatchObject({ code: 'capacity' })
   })
+
+  it('builds base64 image blocks on the last user message', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse([frame('message_stop', { type: 'message_stop' })]))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const adapter = createAnthropicAdapter({ baseUrl: 'https://api.example.com', apiKey: 'k', timeoutMs: 5000 })
+    for await (const _ of adapter.stream({
+      ...baseRequest,
+      images: [{ mimeType: 'image/png', dataBase64: 'AAA=' }],
+    })) {
+      void _
+    }
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'hello' },
+          { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AAA=' } },
+        ],
+      },
+    ])
+    expect(body.system).toBe('You are Nexora.')
+  })
 })

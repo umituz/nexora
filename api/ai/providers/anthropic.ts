@@ -1,4 +1,4 @@
-import type { TokenUsage } from '@shared/ai/contracts'
+import type { RequestImage, TokenUsage } from '@shared/ai/contracts'
 import { AiError, errorFromStatus, errorFromUnknown } from '../errors'
 import type { AdapterConfig, AdapterRequest, ChatAdapter, ProviderEvent } from './openai-compatible'
 
@@ -34,6 +34,34 @@ interface WireEvent {
   error?: { type?: string; message?: string }
 }
 
+type WireContentBlock = { type: 'text'; text: string } | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } }
+
+type WireMessage = { role: 'user' | 'assistant'; content: string | WireContentBlock[] }
+
+function mergeImages(messages: WireMessage[], images: RequestImage[]): WireMessage[] {
+  if (images.length === 0) return messages
+  const blocks: WireContentBlock[] = images.map((image) => ({
+    type: 'image',
+    source: { type: 'base64', media_type: image.mimeType, data: image.dataBase64 },
+  }))
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const message = messages[index]
+    if (message.role !== 'user') continue
+    const textBlocks: WireContentBlock[] =
+      typeof message.content === 'string'
+        ? message.content.length > 0
+          ? [{ type: 'text', text: message.content }]
+          : []
+        : message.content
+    return [
+      ...messages.slice(0, index),
+      { role: 'user', content: [...textBlocks, ...blocks] },
+      ...messages.slice(index + 1),
+    ]
+  }
+  return [...messages, { role: 'user', content: [...blocks] }]
+}
+
 export function createAnthropicAdapter(config: AdapterConfig): ChatAdapter {
   return {
     async *stream(req: AdapterRequest): AsyncIterable<ProviderEvent> {
@@ -44,9 +72,16 @@ export function createAnthropicAdapter(config: AdapterConfig): ChatAdapter {
         .filter((message) => message.role === 'system')
         .map((message) => message.content)
         .join('\n\n')
-      const messages = req.messages
-        .filter((message) => message.role !== 'system')
-        .map((message) => ({ role: message.role, content: message.content }))
+      const messages = mergeImages(
+        req.messages
+          .filter((message) => message.role !== 'system')
+          .map((message) => {
+            if (message.role === 'user') return { role: 'user' as const, content: message.content }
+            if (message.role === 'assistant') return { role: 'assistant' as const, content: message.content }
+            return { role: 'assistant' as const, content: message.content }
+          }),
+        req.images ?? [],
+      )
 
       let response: Response
       try {

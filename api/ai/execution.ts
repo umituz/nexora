@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, like } from 'drizzle-orm'
 import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
 import {
   DEFAULT_CONVERSATION_TITLE,
@@ -8,6 +8,7 @@ import {
   type GenerationSettings,
   type MessageStatus,
   type PublicToolCall,
+  type RequestImage,
   type StreamEvent,
   type TokenUsage,
   type ToolDefinition,
@@ -25,6 +26,8 @@ import { buildSystemPrompt, type AgentContext, type ProjectContext } from './pro
 import { buildUsageData } from './usage'
 
 export type GenerationMode = 'append' | 'regenerate' | 'continue'
+
+export const IMAGE_INPUT_MAX = 4
 
 export interface GenerationInput {
   db: Db
@@ -55,6 +58,7 @@ interface GenerationState {
   agent: AgentBinding | null
   resolved: ResolvedModel
   routed: RoutedRequest
+  images: RequestImage[]
 }
 
 export async function* runGeneration(input: GenerationInput): AsyncGenerator<StreamEvent> {
@@ -117,6 +121,11 @@ async function prepareGeneration(input: GenerationInput): Promise<GenerationStat
     ...cleanUndefined(input.settings),
   })
 
+  const images = await loadImageAttachments(db, conversationId)
+  if (images.length > 0 && !resolved.model.capabilities.vision) {
+    throw ApiError.badRequest(`Model ${resolved.model.displayName} does not support images`)
+  }
+
   return {
     conversationModelId: conversation.modelId,
     conversationSettings: conversation.settings,
@@ -124,6 +133,7 @@ async function prepareGeneration(input: GenerationInput): Promise<GenerationStat
     agent,
     resolved,
     routed,
+    images,
   }
 }
 
@@ -197,6 +207,22 @@ async function loadAttachmentTexts(db: Db, conversationId: string): Promise<{ na
   return out
 }
 
+async function loadImageAttachments(db: Db, conversationId: string): Promise<RequestImage[]> {
+  const rows = await db
+    .select({ mimeType: attachments.mimeType, contentB64: attachments.contentB64 })
+    .from(attachments)
+    .where(and(
+      eq(attachments.conversationId, conversationId),
+      eq(attachments.status, 'stored'),
+      like(attachments.mimeType, 'image/%'),
+      isNull(attachments.deletedAt),
+    ))
+    .orderBy(asc(attachments.createdAt))
+    .limit(IMAGE_INPUT_MAX)
+
+  return rows.flatMap((row) => (row.contentB64 ? [{ mimeType: row.mimeType, dataBase64: row.contentB64 }] : []))
+}
+
 async function dropTrailingAnswers(db: Db, conversationId: string): Promise<void> {
   const trailing = await db
     .select({ id: messages.id, role: messages.role })
@@ -238,7 +264,7 @@ async function* streamAnswer(input: GenerationInput, state: GenerationState): As
   })
 
   const attempts: RoutedRequest[] = [state.routed]
-  if (toolDefinitions.length === 0) {
+  if (toolDefinitions.length === 0 && state.images.length === 0) {
     const fallback = await loadFailoverModel(db, env, state.resolved)
     if (fallback) {
       attempts.push(routeModelRequest(env, fallback, state.routed.settings))
@@ -266,6 +292,7 @@ async function* streamAnswer(input: GenerationInput, state: GenerationState): As
         maxOutputTokens: routed.settings.maxOutputTokens,
         topP: routed.settings.topP,
         ...(toolDefinitions.length > 0 ? { tools: toolDefinitions } : {}),
+        ...(state.images.length > 0 ? { images: state.images } : {}),
         signal: input.signal,
       })) {
         if (event.type === 'delta') {

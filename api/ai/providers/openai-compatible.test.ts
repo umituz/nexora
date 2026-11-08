@@ -218,4 +218,62 @@ describe('createOpenAiCompatibleAdapter', () => {
 
     expect(events).toEqual([{ type: 'delta', channel: 'answer', text: 'Hi' }])
   })
+
+  it('merges request images into the last user message as data-url parts', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse([chunk({ choices: [{ delta: { content: 'red' } }] }), 'data: [DONE]\n\n']))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const adapter = createOpenAiCompatibleAdapter({ baseUrl: 'https://api.example.com/v1', apiKey: 'k', timeoutMs: 5000 })
+    for await (const _ of adapter.stream({
+      ...baseRequest,
+      messages: [
+        { role: 'user' as const, content: 'first question' },
+        { role: 'assistant' as const, content: 'an earlier answer' },
+        { role: 'user' as const, content: 'what color is this' },
+      ],
+      images: [
+        { mimeType: 'image/png', dataBase64: 'AAA=' },
+        { mimeType: 'image/jpeg', dataBase64: 'BBB=' },
+      ],
+    })) {
+      void _
+    }
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    expect(body.messages).toEqual([
+      { role: 'user', content: 'first question' },
+      { role: 'assistant', content: 'an earlier answer' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'what color is this' },
+          { type: 'image_url', image_url: { url: 'data:image/png;base64,AAA=' } },
+          { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,BBB=' } },
+        ],
+      },
+    ])
+  })
+
+  it('appends an image-only user message when history has no user turn', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse([chunk({ choices: [{ delta: { content: 'blue' } }] }), 'data: [DONE]\n\n']))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const adapter = createOpenAiCompatibleAdapter({ baseUrl: 'https://api.example.com/v1', apiKey: 'k', timeoutMs: 5000 })
+    for await (const _ of adapter.stream({
+      ...baseRequest,
+      messages: [{ role: 'assistant' as const, content: 'hello?' }],
+      images: [{ mimeType: 'image/png', dataBase64: 'CCC=' }],
+    })) {
+      void _
+    }
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+    expect(body.messages).toEqual([
+      { role: 'assistant', content: 'hello?' },
+      {
+        role: 'user',
+        content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,CCC=' } }],
+      },
+    ])
+  })
 })

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { FileText, X } from 'lucide-react'
+import { FileText, Image as ImageIcon, X } from 'lucide-react'
 import type { AttachmentRow } from '@/data/chatTypes'
 import { useT } from '@/i18n'
 
@@ -30,7 +30,11 @@ export function AttachmentChips({ attachments, onRemove }: AttachmentChipsProps)
             title={t('chat.attachmentDownload')}
             className="inline-flex min-w-0 items-center gap-1.5 hover:text-foreground"
           >
-            <FileText size={12} aria-hidden="true" className="shrink-0" />
+            {row.mimeType.startsWith('image/') ? (
+              <ImageIcon size={12} aria-hidden="true" className="shrink-0" />
+            ) : (
+              <FileText size={12} aria-hidden="true" className="shrink-0" />
+            )}
             <span className="max-w-40 truncate">{row.name}</span>
           </a>
           {row.status !== 'processed' && (

@@ -87,6 +87,29 @@ first-class in the contract. Usage arrives in a terminal chunk via
   `top_p`) are omitted because current Claude models reject them with a 400 — the
   registry's temperature/topP settings apply to OpenAI-compatible providers only.
 
+## Image understanding (vision input)
+
+- Image attachments (`image/*`, stored base64 in `nexora_attachments.content_b64`,
+  upload cap 2 MB per file) ride along out-of-band: `AdapterRequest.images` carries
+  at most `IMAGE_INPUT_MAX = 4` images per request; `ChatMessage.content` stays a
+  plain string, so persisted history and the context manager are unchanged.
+- `execution.ts` loads stored image attachments for the conversation, and refuses
+  with 400 before any provider call when the resolved model lacks the `vision`
+  capability ("Model X does not support images"). When images are present,
+  provider failover is skipped — the fallback model may not be vision-capable.
+- Wire mapping (unit-tested, per adapter): the OpenAI-compatible adapter merges
+  `{type:'image_url', image_url:{url:'data:<mime>;base64,<data>'}}` parts into the
+  last user message (or appends an image-only user message when history has no user
+  turn); the Anthropic adapter emits `{type:'image', source:{type:'base64',
+  media_type, data}}` content blocks on the same message. Images are never written
+  back to `nexora_messages` — only the model's text answer is persisted.
+- Verified live in this workspace: upload of an `image/png` attachment (status
+  `stored`) and the capability gate (400 on a non-vision model with an image
+  attached). Live image understanding on `qwen/qwen3.8-27b` (vision model seeded
+  from the live Groq catalog) is **not** verified: the workspace's `GROQ_API_KEY`
+  was rejected with 403 during this phase. Set a valid `GROQ_API_KEY` to activate
+  it; the adapter wire shapes above are covered by unit tests in the meantime.
+
 ## Image generation
 
 - `POST /api/artifacts` generates one image from a prompt: `resolveImageModel`

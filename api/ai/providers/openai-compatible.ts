@@ -1,4 +1,4 @@
-import type { AssistantToolCall, ChatMessage, TokenUsage, ToolDefinition } from '@shared/ai/contracts'
+import type { AssistantToolCall, ChatMessage, RequestImage, TokenUsage, ToolDefinition } from '@shared/ai/contracts'
 import { errorFromStatus, errorFromUnknown } from '../errors'
 
 export interface AdapterRequest {
@@ -8,6 +8,7 @@ export interface AdapterRequest {
   maxOutputTokens: number
   topP: number
   tools?: ToolDefinition[]
+  images?: RequestImage[]
   signal?: AbortSignal
 }
 
@@ -47,8 +48,11 @@ interface WireChunk {
   }
 }
 
+type WireContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
+
 type WireMessage =
-  | { role: 'system' | 'user' | 'assistant'; content: string; tool_calls?: unknown }
+  | { role: 'system' | 'assistant'; content: string; tool_calls?: unknown }
+  | { role: 'user'; content: string | WireContentPart[] }
   | { role: 'tool'; content: string; tool_call_id: string }
 
 function toWireMessage(message: ChatMessage): WireMessage {
@@ -66,7 +70,32 @@ function toWireMessage(message: ChatMessage): WireMessage {
       })),
     }
   }
+  if (message.role === 'user') return { role: 'user', content: message.content }
   return { role: message.role, content: message.content }
+}
+
+function mergeImages(messages: WireMessage[], images: RequestImage[]): WireMessage[] {
+  if (images.length === 0) return messages
+  const parts: WireContentPart[] = images.map((image) => ({
+    type: 'image_url',
+    image_url: { url: `data:${image.mimeType};base64,${image.dataBase64}` },
+  }))
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const message = messages[index]
+    if (message.role !== 'user') continue
+    const textParts: WireContentPart[] =
+      typeof message.content === 'string'
+        ? message.content.length > 0
+          ? [{ type: 'text', text: message.content }]
+          : []
+        : message.content
+    return [
+      ...messages.slice(0, index),
+      { role: 'user', content: [...textParts, ...parts] },
+      ...messages.slice(index + 1),
+    ]
+  }
+  return [...messages, { role: 'user', content: [...parts] }]
 }
 
 export function createOpenAiCompatibleAdapter(config: AdapterConfig): ChatAdapter {
@@ -85,7 +114,7 @@ export function createOpenAiCompatibleAdapter(config: AdapterConfig): ChatAdapte
           },
           body: JSON.stringify({
             model: req.externalModelId,
-            messages: req.messages.map(toWireMessage),
+            messages: mergeImages(req.messages.map(toWireMessage), req.images ?? []),
             temperature: req.temperature,
             max_completion_tokens: req.maxOutputTokens,
             top_p: req.topP,

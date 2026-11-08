@@ -19,6 +19,11 @@ export interface ToolDefinition {
   parameters: Record<string, unknown>
 }
 
+export interface RequestImage {
+  mimeType: string
+  dataBase64: string
+}
+
 export type ToolCallStatus = 'pending' | 'approved' | 'rejected' | 'succeeded' | 'failed'
 
 export interface PublicToolCall {
