@@ -161,6 +161,13 @@ const en = {
     inputTokens: 'Input tokens',
     outputTokens: 'Output tokens',
     cost: 'Estimated cost',
+    byModel: 'By model',
+    byConversation: 'By conversation',
+    model: 'Model',
+    conversation: 'Conversation',
+    lastUsed: 'Last used',
+    deletedConversation: 'Deleted conversation',
+    empty: 'No usage recorded yet — send a message to see the breakdown here.',
   },
   auth: {
     login: {

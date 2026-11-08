@@ -19,7 +19,7 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Confirm real provider availability: Groq API key live, model catalog + pricing verified.
 - [x] Produce ARCHITECTURE.md, PACKAGE-ADOPTION.md, AI-CORE.md, this TODO.md.
 
-## Phase 1 — Core application and chat (current)
+## Phase 1 — Core application and chat
 
 **Application shell**
 - [x] Scaffold project (configs, wrangler, tsconfigs, eslint, Tailwind 4 entry, gitignore, env examples).
@@ -64,7 +64,7 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Additional provider adapters (OpenAI-compatible family + at least one distinct protocol).
 - [x] Extended capability registry (vision, tools, reasoning as data).
 - [x] Model selection UX with capability badges; provider failover where safe.
-- [ ] Usage/cost reporting UI (per user/conversation/model).
+- [x] Usage/cost reporting UI (per user/conversation/model).
 
 ## Phase 4 — AI Studio and artifacts
 

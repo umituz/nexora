@@ -98,3 +98,28 @@ export interface UsageSummary {
   outputTokens: number
   costMicros: number
 }
+
+export interface UsageModelRow {
+  model: string
+  providerId: string
+  providerName: string | null
+  requests: number
+  inputTokens: number
+  outputTokens: number
+  costMicros: number
+}
+
+export interface UsageConversationRow {
+  conversationId: string | null
+  title: string | null
+  requests: number
+  inputTokens: number
+  outputTokens: number
+  costMicros: number
+  lastUsedAt: string | null
+}
+
+export interface UsageBreakdown {
+  models: UsageModelRow[]
+  conversations: UsageConversationRow[]
+}

@@ -149,7 +149,7 @@ export default function ChatPage(): ReactNode {
         handleRef.current = null
         streamingConversationRef.current = null
         setStreaming(false)
-        await store.refresh(['conversations', 'usage'])
+        await store.refresh(['conversations', 'usage', 'usageBreakdown'])
         if (stoppedRef.current) {
           stoppedRef.current = false
         } else if (conversationId === conversationRow.id) {
