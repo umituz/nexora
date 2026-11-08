@@ -7,6 +7,9 @@ with the pilot project (hangora) as the comparison base, plus one deliberate div
 the AI layer is implemented project-locally (see AI-CORE.md; long-term extraction path in
 INFRA-EVOLUTION.md).
 
+Live: https://nexora.umituz998.workers.dev (deployed 2026-11-08, `cf-ship deploy`;
+secrets: DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, GROQ_API_KEY).
+
 ## Topology
 
 ```
