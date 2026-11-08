@@ -1,4 +1,5 @@
 import { AiError } from '../errors'
+import { createAnthropicAdapter } from './anthropic'
 import { createOpenAiCompatibleAdapter, type ChatAdapter } from './openai-compatible'
 
 export type { ChatAdapter, ProviderEvent, AdapterRequest } from './openai-compatible'
@@ -32,6 +33,13 @@ export function adapterFor(env: object, provider: ProviderBinding): ChatAdapter 
   const apiKey = resolveProviderKey(env, provider.apiKeyEnv)
   if (provider.adapter === 'openai-compatible') {
     return createOpenAiCompatibleAdapter({
+      baseUrl: provider.baseUrl.replace(/\/$/, ''),
+      apiKey,
+      timeoutMs: TIMEOUT_MS,
+    })
+  }
+  if (provider.adapter === 'anthropic') {
+    return createAnthropicAdapter({
       baseUrl: provider.baseUrl.replace(/\/$/, ''),
       apiKey,
       timeoutMs: TIMEOUT_MS,

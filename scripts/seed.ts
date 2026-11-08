@@ -22,17 +22,49 @@ interface SeedModel {
   sortOrder: number
 }
 
-const GROQ_PROVIDER_ID = 'provider_groq'
+interface SeedProvider {
+  id: string
+  name: string
+  adapter: string
+  baseUrl: string
+  apiKeyEnv: string
+}
+
+const SEED_PROVIDERS: SeedProvider[] = [
+  {
+    id: 'provider_groq',
+    name: 'Groq',
+    adapter: 'openai-compatible',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    apiKeyEnv: 'GROQ_API_KEY',
+  },
+  {
+    id: 'provider_openai',
+    name: 'OpenAI',
+    adapter: 'openai-compatible',
+    baseUrl: 'https://api.openai.com/v1',
+    apiKeyEnv: 'OPENAI_API_KEY',
+  },
+  {
+    id: 'provider_anthropic',
+    name: 'Anthropic',
+    adapter: 'anthropic',
+    baseUrl: 'https://api.anthropic.com',
+    apiKeyEnv: 'ANTHROPIC_API_KEY',
+  },
+]
+
+const CHAT: ModelCapabilities = { streaming: true, tools: true, structured: true, reasoning: true, vision: false }
 
 const SEED_MODELS: SeedModel[] = [
   {
     id: 'model_gpt_oss_120b',
-    providerId: GROQ_PROVIDER_ID,
+    providerId: 'provider_groq',
     externalId: 'openai/gpt-oss-120b',
     displayName: 'GPT OSS 120B',
     family: 'gpt-oss',
     description: 'OpenAI open-weight flagship reasoning model served by Groq at ultra-low latency.',
-    capabilities: { streaming: true, tools: true, structured: true, reasoning: true, vision: false },
+    capabilities: CHAT,
     inputTypes: ['text'],
     outputTypes: ['text'],
     contextWindow: 131072,
@@ -43,12 +75,12 @@ const SEED_MODELS: SeedModel[] = [
   },
   {
     id: 'model_gpt_oss_20b',
-    providerId: GROQ_PROVIDER_ID,
+    providerId: 'provider_groq',
     externalId: 'openai/gpt-oss-20b',
     displayName: 'GPT OSS 20B',
     family: 'gpt-oss',
     description: 'Compact open-weight reasoning model for fast, cost-effective generation.',
-    capabilities: { streaming: true, tools: true, structured: true, reasoning: true, vision: false },
+    capabilities: CHAT,
     inputTypes: ['text'],
     outputTypes: ['text'],
     contextWindow: 131072,
@@ -59,7 +91,7 @@ const SEED_MODELS: SeedModel[] = [
   },
   {
     id: 'model_qwen3_8_27b',
-    providerId: GROQ_PROVIDER_ID,
+    providerId: 'provider_groq',
     externalId: 'qwen/qwen3.8-27b',
     displayName: 'Qwen3.8 27B',
     family: 'qwen',
@@ -73,32 +105,120 @@ const SEED_MODELS: SeedModel[] = [
     isDefault: false,
     sortOrder: 30,
   },
+  {
+    id: 'model_gpt_6_1_sol',
+    providerId: 'provider_openai',
+    externalId: 'gpt-6.1-sol',
+    displayName: 'GPT-6.1 Sol',
+    family: 'gpt-6',
+    description: 'OpenAI flagship-class chat model. Short-context rates; long-context input (>272K) is priced higher.',
+    capabilities: CHAT,
+    inputTypes: ['text'],
+    outputTypes: ['text'],
+    contextWindow: 1050000,
+    maxOutputTokens: 128000,
+    pricing: { inputPerMTok: 2, outputPerMTok: 10, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 40,
+  },
+  {
+    id: 'model_gpt_6_1_terra',
+    providerId: 'provider_openai',
+    externalId: 'gpt-6.1-terra',
+    displayName: 'GPT-6.1 Terra',
+    family: 'gpt-6',
+    description: 'Balanced OpenAI chat model. Short-context rates; long-context input (>272K) is priced higher.',
+    capabilities: CHAT,
+    inputTypes: ['text'],
+    outputTypes: ['text'],
+    contextWindow: 1050000,
+    maxOutputTokens: 128000,
+    pricing: { inputPerMTok: 1, outputPerMTok: 5, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 50,
+  },
+  {
+    id: 'model_gpt_6_luna',
+    providerId: 'provider_openai',
+    externalId: 'gpt-6-luna',
+    displayName: 'GPT-6 Luna',
+    family: 'gpt-6',
+    description: 'Low-cost OpenAI chat model. Short-context rates; long-context input (>272K) is priced higher.',
+    capabilities: CHAT,
+    inputTypes: ['text'],
+    outputTypes: ['text'],
+    contextWindow: 1050000,
+    maxOutputTokens: 128000,
+    pricing: { inputPerMTok: 0.1, outputPerMTok: 0.5, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 60,
+  },
+  {
+    id: 'model_claude_haiku_5_5',
+    providerId: 'provider_anthropic',
+    externalId: 'claude-haiku-5-5',
+    displayName: 'Claude Haiku 5.5',
+    family: 'claude',
+    description: 'Fast, low-cost Claude model. Rates apply up to 100K-token prompts; higher beyond.',
+    capabilities: CHAT,
+    inputTypes: ['text'],
+    outputTypes: ['text'],
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    pricing: { inputPerMTok: 0.1, outputPerMTok: 0.5, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 70,
+  },
+  {
+    id: 'model_claude_sonnet_5_5',
+    providerId: 'provider_anthropic',
+    externalId: 'claude-sonnet-5-5',
+    displayName: 'Claude Sonnet 5.5',
+    family: 'claude',
+    description: 'Everyday coding and agent workhorse in the Claude family.',
+    capabilities: CHAT,
+    inputTypes: ['text'],
+    outputTypes: ['text'],
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    pricing: { inputPerMTok: 2, outputPerMTok: 10, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 80,
+  },
+  {
+    id: 'model_claude_opus_5_5',
+    providerId: 'provider_anthropic',
+    externalId: 'claude-opus-5-5',
+    displayName: 'Claude Opus 5.5',
+    family: 'claude',
+    description: 'Current Claude Opus for demanding reasoning and long-horizon work.',
+    capabilities: CHAT,
+    inputTypes: ['text'],
+    outputTypes: ['text'],
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    pricing: { inputPerMTok: 4, outputPerMTok: 20, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 90,
+  },
 ]
 
 async function main() {
   const url = await guardDbTarget('db:seed (idempotent model registry upsert)')
   const db = drizzle(neon(url))
 
-  await db
-    .insert(providers)
-    .values({
-      id: GROQ_PROVIDER_ID,
-      name: 'Groq',
-      adapter: 'openai-compatible',
-      baseUrl: 'https://api.groq.com/openai/v1',
-      apiKeyEnv: 'GROQ_API_KEY',
-    })
-    .onConflictDoUpdate({
-      target: providers.id,
-      set: { name: 'Groq', adapter: 'openai-compatible', baseUrl: 'https://api.groq.com/openai/v1', apiKeyEnv: 'GROQ_API_KEY' },
-    })
+  for (const provider of SEED_PROVIDERS) {
+    await db.insert(providers).values(provider).onConflictDoUpdate({ target: providers.id, set: provider })
+  }
 
   for (const model of SEED_MODELS) {
     const { id: _modelId, ...rest } = model
     await db.insert(models).values(model).onConflictDoUpdate({ target: models.id, set: rest })
   }
 
-  console.log(`Seeded ${SEED_MODELS.length} models for provider Groq (verified against the live catalog on 2026-11-08).`)
+  console.log(
+    `Seeded ${SEED_PROVIDERS.length} providers and ${SEED_MODELS.length} models (Groq verified against the live catalog 2026-11-08; OpenAI and Anthropic from official published pricing 2026-11-08).`,
+  )
 }
 
 main().catch((err) => {

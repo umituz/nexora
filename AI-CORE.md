@@ -12,8 +12,10 @@ isolated in adapters, database access behind narrow repository functions.
 ```
 api/ai/
 ├── providers/
-│   ├── groq.ts         # real adapter: OpenAI-compatible wire, SSE parsing, error mapping
-│   └── index.ts        # adapter registry: adapter kind (from provider row) → factory
+│   ├── openai-compatible.ts  # adapter: OpenAI chat-completions wire (Groq, OpenAI), SSE, error mapping
+│   ├── anthropic.ts          # adapter: Anthropic Messages API wire (own SSE event format)
+│   └── index.ts              # adapter registry: adapter kind (from provider row) → factory
+├── memories.ts         # long-term memory selection (pinned-first, recency, caps) + loader
 ├── model-registry.ts   # DB-backed catalog: available models (provider key present + active)
 ├── model-router.ts     # model id → provider row + adapter; capability & param validation; timeouts
 ├── prompt-engine.ts    # system prompt assembly, versioned templates, dynamic context slots
@@ -53,6 +55,27 @@ Verified against the live Groq API (2026-11-08): SSE chunks carry `delta.content
 (answer) and `delta.reasoning` + `channel: "analysis"` (reasoning) — both channels are
 first-class in the contract. Usage arrives in a terminal chunk via
 `stream_options: { include_usage: true }`.
+
+## Provider adapters
+
+| adapter kind | wire | providers (seeded) | env var |
+|---|---|---|---|
+| `openai-compatible` | `POST {base}/chat/completions`, OpenAI SSE chunks | Groq, OpenAI | `GROQ_API_KEY` (live), `OPENAI_API_KEY` |
+| `anthropic` | `POST {base}/v1/messages`, Anthropic SSE events | Anthropic | `ANTHROPIC_API_KEY` |
+
+- A provider row (adapter kind + base URL + `api_key_env`) plus model rows are all it
+  takes to activate a provider — no code changes, keys are Worker secrets referenced
+  by name. Models of providers without a key are hidden from the catalog instead of
+  failing at request time.
+- Groq streaming is live-verified. OpenAI and Anthropic adapters are implemented and
+  unit-tested against their documented wire formats (official pricing pages,
+  2026-11-08), but **not** live-verified: set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`
+  to activate them.
+- Anthropic wire specifics handled by its adapter: `system` is a top-level request
+  param (never a message role), `max_tokens` is required, usage arrives via
+  `message_start`/`message_delta` events, and sampling params (`temperature`,
+  `top_p`) are omitted because current Claude models reject them with a 400 — the
+  registry's temperature/topP settings apply to OpenAI-compatible providers only.
 
 ## Server → client streaming protocol (`streaming.ts`)
 
