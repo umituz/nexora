@@ -1,4 +1,5 @@
-import type { GenerationSettings, PublicToolCall, StreamEvent } from '@shared/ai/contracts'
+import type { GenerationSettings, PublicToolCall } from '@shared/ai/contracts'
+import { readSseResponse } from '@umituz/web-ai'
 import type { StreamCallbacks, StreamHandle } from '@/data/chatTypes'
 
 export interface StreamRequestBody {
@@ -67,66 +68,6 @@ export async function resolveToolCall(
 
   await readSseResponse(response, callbacks)
   return true
-}
-
-async function readSseResponse(response: Response, callbacks: StreamCallbacks): Promise<void> {
-  if (!response.body) {
-    callbacks.onError?.('request_failed', 'The server returned an empty stream.')
-    return
-  }
-
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-
-    let separator = buffer.indexOf('\n\n')
-    while (separator !== -1) {
-      const rawEvent = buffer.slice(0, separator)
-      buffer = buffer.slice(separator + 2)
-      separator = buffer.indexOf('\n\n')
-      const event = parseSseEvent(rawEvent)
-      if (!event) continue
-      dispatch(event, callbacks)
-    }
-  }
-}
-
-function parseSseEvent(rawEvent: string): StreamEvent | null {
-  let data: string | null = null
-  for (const line of rawEvent.split('\n')) {
-    if (line.startsWith('data:')) data = line.slice(5).trim()
-  }
-  if (!data) return null
-  try {
-    return JSON.parse(data) as StreamEvent
-  } catch {
-    return null
-  }
-}
-
-function dispatch(event: StreamEvent, callbacks: StreamCallbacks): void {
-  switch (event.type) {
-    case 'delta':
-      callbacks.onDelta(event.channel, event.text)
-      break
-    case 'usage':
-      callbacks.onUsage?.(event.usage)
-      break
-    case 'tool_call':
-      callbacks.onToolCall?.(event.toolCall)
-      break
-    case 'done':
-      callbacks.onDone?.(event.messageId)
-      break
-    case 'error':
-      callbacks.onError?.(event.code, event.message)
-      break
-  }
 }
 
 export type { PublicToolCall }

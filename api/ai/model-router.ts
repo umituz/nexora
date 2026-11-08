@@ -1,8 +1,15 @@
 import { ApiError } from '@umituz/web-hono'
-import { DEFAULT_GENERATION, GENERATION_BOUNDS, type GenerationSettings } from '@shared/ai/contracts'
+import {
+  DEFAULT_GENERATION,
+  GENERATION_BOUNDS,
+  normalizeGenerationSettings,
+  type GenerationSettings,
+} from '@umituz/web-ai'
 import type { Env } from '../env'
 import type { ResolvedModel } from './model-registry'
 import { adapterFor, type ChatAdapter } from './providers'
+
+export { DEFAULT_GENERATION, GENERATION_BOUNDS }
 
 export interface RoutedRequest {
   adapter: ChatAdapter
@@ -14,31 +21,14 @@ export function normalizeSettings(
   requested: GenerationSettings | undefined,
   maxOutputTokens: number,
 ): Required<GenerationSettings> {
-  const merged = { ...DEFAULT_GENERATION, ...cleanUndefined(requested) }
-  const { temperature, topP } = GENERATION_BOUNDS
-
-  if (merged.temperature < temperature.min || merged.temperature > temperature.max) {
-    throw ApiError.badRequest(`temperature must be between ${temperature.min} and ${temperature.max}`)
+  try {
+    return normalizeGenerationSettings(requested, maxOutputTokens)
+  } catch (err: unknown) {
+    if (err && typeof err === 'object' && 'message' in err) {
+      throw ApiError.badRequest((err as { message: string }).message)
+    }
+    throw ApiError.badRequest('Invalid generation settings')
   }
-  if (merged.topP < topP.min || merged.topP > topP.max) {
-    throw ApiError.badRequest(`topP must be between ${topP.min} and ${topP.max}`)
-  }
-  if (!Number.isInteger(merged.maxOutputTokens) || merged.maxOutputTokens < 1) {
-    throw ApiError.badRequest('maxOutputTokens must be a positive integer')
-  }
-  if (merged.maxOutputTokens > maxOutputTokens) {
-    merged.maxOutputTokens = maxOutputTokens
-  }
-  return merged
-}
-
-function cleanUndefined(settings: GenerationSettings | undefined): GenerationSettings {
-  const cleaned: GenerationSettings = {}
-  if (!settings) return cleaned
-  for (const [key, value] of Object.entries(settings)) {
-    if (value !== undefined) cleaned[key as keyof GenerationSettings] = value
-  }
-  return cleaned
 }
 
 export function routeModelRequest(

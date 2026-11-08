@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
-    "@umituz/web-ai": "^1.0.7",
+    "@umituz/web-ai": "^1.0.9",
     "@umituz/web-auth": "^2.3.0",
     "@umituz/web-dashboard": "^11.0.0",
     "@umituz/web-design-system": "^6.2.0",
