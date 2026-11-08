@@ -1,9 +1,16 @@
 import type { GenerationSettings, StreamEvent } from '@shared/ai/contracts'
 import type { StreamCallbacks, StreamHandle } from '@/data/chatTypes'
 
+export interface StreamRequestBody {
+  mode?: 'append' | 'regenerate'
+  content?: string
+  modelId?: string
+  settings?: GenerationSettings
+}
+
 export function streamChat(
   conversationId: string,
-  body: { content: string; modelId?: string; settings?: GenerationSettings },
+  body: StreamRequestBody,
   callbacks: StreamCallbacks,
 ): StreamHandle {
   const controller = new AbortController()

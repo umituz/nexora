@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { AlertCircle, Check, Copy, RotateCcw, Sparkles, User } from 'lucide-react'
+import { AlertCircle, Check, Copy, Pencil, RotateCcw, Sparkles, User } from 'lucide-react'
 import { useState } from 'react'
 import type { MessageStatus, TokenUsage } from '@shared/ai/contracts'
+import { useT } from '@/i18n'
 import { MessageContent } from './MessageContent'
 import { ReasoningBlock } from './ReasoningBlock'
 
@@ -19,9 +20,12 @@ interface MessageBubbleProps {
   message: ChatMessageView
   onRegenerate?: () => void
   canRegenerate?: boolean
+  onEdit?: () => void
+  canEdit?: boolean
 }
 
-export function MessageBubble({ message, onRegenerate, canRegenerate = false }: MessageBubbleProps): ReactNode {
+export function MessageBubble({ message, onRegenerate, canRegenerate = false, onEdit, canEdit = false }: MessageBubbleProps): ReactNode {
+  const t = useT()
   const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
 
@@ -75,6 +79,17 @@ export function MessageBubble({ message, onRegenerate, canRegenerate = false }: 
               {copied ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
             </button>
           )}
+          {isUser && canEdit && message.status === 'complete' && onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              aria-label={t('chat.edit')}
+              title={t('chat.edit')}
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-muted hover:text-foreground"
+            >
+              <Pencil size={12} aria-hidden="true" />
+            </button>
+          )}
           {!isUser && canRegenerate && message.status === 'complete' && onRegenerate && (
             <button
               type="button"
@@ -89,7 +104,7 @@ export function MessageBubble({ message, onRegenerate, canRegenerate = false }: 
               {message.usage.inputTokens} → {message.usage.outputTokens}
             </span>
           )}
-          {message.status === 'stopped' && <span>stopped</span>}
+          {message.status === 'stopped' && <span>{t('chat.stopped')}</span>}
         </div>
       </div>
       {isUser && (

@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
 import {
   DEFAULT_CONVERSATION_TITLE,
@@ -19,12 +19,15 @@ import { routeModelRequest, type RoutedRequest } from './model-router'
 import { buildSystemPrompt } from './prompt-engine'
 import { buildUsageData } from './usage'
 
+export type GenerationMode = 'append' | 'regenerate'
+
 export interface GenerationInput {
   db: Db
   env: Env
   userId: string
   conversationId: string
-  content: string
+  content: string | null
+  mode: GenerationMode
   modelId: string | null
   settings: GenerationSettings | undefined
   signal?: AbortSignal
@@ -35,7 +38,6 @@ interface GenerationState {
   conversationSettings: ConversationSettings
   resolved: ResolvedModel
   routed: RoutedRequest
-  userMessageId: string
 }
 
 export async function* runGeneration(input: GenerationInput): AsyncGenerator<StreamEvent> {
@@ -44,7 +46,7 @@ export async function* runGeneration(input: GenerationInput): AsyncGenerator<Str
 }
 
 async function prepareGeneration(input: GenerationInput): Promise<GenerationState> {
-  const { db, env, userId, conversationId, content } = input
+  const { db, env, userId, conversationId, content, mode } = input
 
   const [conversation] = await db
     .select()
@@ -53,21 +55,25 @@ async function prepareGeneration(input: GenerationInput): Promise<GenerationStat
     .limit(1)
   if (!conversation) throw ApiError.notFound('Conversation')
 
-  const userMessageId = uid('msg')
-  await db.insert(messages).values({
-    id: userMessageId,
-    conversationId,
-    userId,
-    role: 'user',
-    content,
-    status: 'complete',
-  })
+  if (mode === 'append') {
+    if (content === null) throw ApiError.badRequest('Message content is required')
+    await db.insert(messages).values({
+      id: uid('msg'),
+      conversationId,
+      userId,
+      role: 'user',
+      content,
+      status: 'complete',
+    })
 
-  if (conversation.title === DEFAULT_CONVERSATION_TITLE) {
-    await db
-      .update(conversations)
-      .set({ title: deriveTitle(content), ...stampUpdate(conversations) })
-      .where(eq(conversations.id, conversationId))
+    if (conversation.title === DEFAULT_CONVERSATION_TITLE) {
+      await db
+        .update(conversations)
+        .set({ title: deriveTitle(content), ...stampUpdate(conversations) })
+        .where(eq(conversations.id, conversationId))
+    }
+  } else {
+    await dropTrailingAnswers(db, conversationId)
   }
 
   const resolved = await resolveModel(db, env, input.modelId ?? conversation.modelId).catch((err) => {
@@ -85,7 +91,32 @@ async function prepareGeneration(input: GenerationInput): Promise<GenerationStat
     conversationSettings: conversation.settings,
     resolved,
     routed,
-    userMessageId,
+  }
+}
+
+async function dropTrailingAnswers(db: Db, conversationId: string): Promise<void> {
+  const trailing = await db
+    .select({ id: messages.id, role: messages.role })
+    .from(messages)
+    .where(and(eq(messages.conversationId, conversationId), isNull(messages.deletedAt)))
+    .orderBy(desc(messages.createdAt))
+    .limit(50)
+
+  const doomed: string[] = []
+  for (const row of trailing) {
+    if (row.role === 'user') break
+    doomed.push(row.id)
+  }
+  if (doomed.length > 0) {
+    await db
+      .update(messages)
+      .set({ deletedAt: new Date(), ...stampUpdate(messages) })
+      .where(inArray(messages.id, doomed))
+  }
+
+  const remaining = trailing.filter((row) => !doomed.includes(row.id))
+  if (!remaining.some((row) => row.role === 'user')) {
+    throw ApiError.badRequest('There is no user message to answer')
   }
 }
 

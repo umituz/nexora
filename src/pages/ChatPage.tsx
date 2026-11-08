@@ -35,8 +35,10 @@ export default function ChatPage(): ReactNode {
   const [loading, setLoading] = useState(false)
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [editing, setEditing] = useState<ChatMessageView | null>(null)
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const handleRef = useRef<StreamHandle | null>(null)
+  const streamingConversationRef = useRef<string | null>(null)
   const threadRef = useRef<HTMLDivElement>(null)
 
   usePageTitle(t('nav.items.chat'))
@@ -52,6 +54,8 @@ export default function ChatPage(): ReactNode {
       setMessages([])
       return
     }
+    setEditing(null)
+    if (streamingConversationRef.current === conversationId) return
     let alive = true
     setLoading(true)
     apiFetch<MessageRow[]>(`/api/conversations/${conversationId}/messages`)
@@ -66,6 +70,7 @@ export default function ChatPage(): ReactNode {
       })
     return () => {
       alive = false
+      handleRef.current?.abort()
     }
   }, [conversationId])
 
@@ -97,18 +102,21 @@ export default function ChatPage(): ReactNode {
   }, [])
 
   const runStream = useCallback(
-    async (conversationRow: ConversationRow, content: string) => {
+    async (conversationRow: ConversationRow, content: string | null, mode: 'append' | 'regenerate' = 'append') => {
       setStreaming(true)
       setInput('')
-      setMessages((prev) => [
-        ...prev,
-        { id: `local-${Date.now()}`, role: 'user', content, reasoning: '', status: 'complete', error: null, usage: null },
+      setEditing(null)
+      streamingConversationRef.current = conversationRow.id
+      setMessages(() => [
+        ...(mode === 'append'
+          ? [{ id: `local-${Date.now()}`, role: 'user' as const, content: content ?? '', reasoning: '', status: 'complete' as const, error: null, usage: null }]
+          : []),
         { id: 'streaming', role: 'assistant', content: '', reasoning: '', status: 'streaming', error: null, usage: null },
       ])
 
       const handle = streamChat(
         conversationRow.id,
-        { content, modelId: selectedModelId ?? undefined },
+        { mode, ...(mode === 'append' ? { content: content ?? undefined } : {}), modelId: selectedModelId ?? undefined },
         {
           onDelta: appendDelta,
           onUsage: (usage) => patchLast({ usage }),
@@ -117,17 +125,51 @@ export default function ChatPage(): ReactNode {
         },
       )
       handleRef.current = handle
-      await handle.promise.catch(() => undefined)
-      handleRef.current = null
-      setStreaming(false)
-      await store.refresh(['conversations', 'usage'])
+      try {
+        await handle.promise.catch(() => undefined)
+      } finally {
+        handleRef.current = null
+        streamingConversationRef.current = null
+        setStreaming(false)
+        await store.refresh(['conversations', 'usage'])
+        if (conversationId === conversationRow.id) {
+          const rows = await apiFetch<MessageRow[]>(`/api/conversations/${conversationRow.id}/messages`).catch(() => null)
+          if (rows) setMessages(rows.map(toView))
+        }
+      }
     },
-    [appendDelta, patchLast, selectedModelId],
+    [appendDelta, conversationId, patchLast, selectedModelId],
+  )
+
+  const editAndResend = useCallback(
+    async (message: ChatMessageView, content: string) => {
+      if (!active) return
+      try {
+        const updated = await apiFetch<MessageRow>(`/api/conversations/${active.id}/messages/${message.id}/edit`, {
+          method: 'POST',
+          json: { content },
+        })
+        const index = messages.findIndex((row) => row.id === message.id)
+        if (index >= 0) {
+          setMessages((prev) => prev.slice(0, index + 1).map((row, i) => (i === index ? toView(updated) : row)))
+        }
+        await runStream(active, null, 'regenerate')
+      } catch {
+        setEditing(null)
+        setInput('')
+      }
+    },
+    [active, messages, runStream],
   )
 
   const send = useCallback(async () => {
     const content = input.trim()
     if (content.length === 0 || streaming) return
+
+    if (editing) {
+      await editAndResend(editing, content)
+      return
+    }
 
     if (active) {
       await runStream(active, content)
@@ -145,12 +187,22 @@ export default function ChatPage(): ReactNode {
     } catch {
       patchLast({ status: 'error', error: { code: 'request_failed', message: t('chat.sendFailed') } })
     }
-  }, [active, input, navigate, patchLast, runStream, selectedModelId, streaming, t])
+  }, [active, editAndResend, editing, input, navigate, patchLast, runStream, selectedModelId, streaming, t])
+
+  const startEdit = useCallback((message: ChatMessageView) => {
+    setEditing(message)
+    setInput(message.content)
+  }, [])
+
+  const cancelEdit = useCallback(() => {
+    setEditing(null)
+    setInput('')
+  }, [])
 
   const regenerate = useCallback(() => {
     if (streaming || !active) return
-    const lastUser = [...messages].reverse().find((message) => message.role === 'user')
-    if (lastUser) void runStream(active, lastUser.content)
+    const hasUser = messages.some((message) => message.role === 'user')
+    if (hasUser) void runStream(active, null, 'regenerate')
   }, [active, messages, runStream, streaming])
 
   const stop = useCallback(() => {
@@ -206,11 +258,21 @@ export default function ChatPage(): ReactNode {
               message={message}
               canRegenerate={lastAssistantComplete && index === messages.length - 1}
               onRegenerate={regenerate}
+              canEdit={!streaming && !editing && message.role === 'user'}
+              onEdit={() => startEdit(message)}
             />
           ))}
         </div>
 
         <div className="border-t border-border px-4 py-3">
+          {editing && (
+            <div className="mb-2 flex items-center justify-between rounded-lg border border-border bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
+              <span>{t('chat.editingMessage')}</span>
+              <button type="button" onClick={cancelEdit} className="rounded px-1.5 py-0.5 font-medium hover:bg-muted hover:text-foreground">
+                {t('common.cancel')}
+              </button>
+            </div>
+          )}
           <Composer
             value={input}
             onChange={setInput}

@@ -53,6 +53,27 @@ describe('streamChat', () => {
     expect(JSON.parse(init.body as string)).toEqual({ content: 'hello' })
   })
 
+  it('sends regenerate mode without content', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        sseResponse(['event: done\ndata: {"type":"done","messageId":"msg_2"}\n\n']),
+      ),
+    )
+
+    let done: string | undefined
+    await streamChat('conv_1', { mode: 'regenerate' }, {
+      onDelta: () => undefined,
+      onDone: (messageId) => {
+        done = messageId
+      },
+    }).promise
+
+    expect(done).toBe('msg_2')
+    const [, init] = vi.mocked(fetch).mock.calls[0] as [string, RequestInit]
+    expect(JSON.parse(init.body as string)).toEqual({ mode: 'regenerate' })
+  })
+
   it('reports non-OK responses through onError', async () => {
     vi.stubGlobal(
       'fetch',
