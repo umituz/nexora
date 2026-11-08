@@ -1,0 +1,225 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
+import { useNavigate, useParams } from 'react-router'
+import { apiFetch } from '@umituz/web-hono/client'
+import { usePageTitle } from '@umituz/web-dashboard'
+import type { ConversationRow, MessageRow, StreamHandle } from '@/data/chatTypes'
+import { store, useCollection } from '@/data/store'
+import { streamChat } from '@/lib/sse'
+import { Composer } from '@/components/chat/Composer'
+import { ConversationList } from '@/components/chat/ConversationList'
+import { MessageBubble, type ChatMessageView } from '@/components/chat/MessageBubble'
+import { ModelPicker } from '@/components/chat/ModelPicker'
+import { useT } from '@/i18n'
+
+function toView(row: MessageRow): ChatMessageView {
+  return {
+    id: row.id,
+    role: row.role === 'assistant' ? 'assistant' : 'user',
+    content: row.content,
+    reasoning: row.reasoning ?? '',
+    status: row.status,
+    error: row.error,
+    usage: row.usage,
+  }
+}
+
+export default function ChatPage(): ReactNode {
+  const t = useT()
+  const navigate = useNavigate()
+  const { conversationId } = useParams()
+  const conversations = useCollection('conversations')
+  const models = useCollection('models')
+
+  const [messages, setMessages] = useState<ChatMessageView[]>([])
+  const [loading, setLoading] = useState(false)
+  const [input, setInput] = useState('')
+  const [streaming, setStreaming] = useState(false)
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
+  const handleRef = useRef<StreamHandle | null>(null)
+  const threadRef = useRef<HTMLDivElement>(null)
+
+  usePageTitle(t('nav.items.chat'))
+
+  const active = conversations.find((row) => row.id === conversationId)
+
+  useEffect(() => {
+    setSelectedModelId(active?.modelId ?? models.find((model) => model.isDefault)?.id ?? models[0]?.id ?? null)
+  }, [active?.modelId, models])
+
+  useEffect(() => {
+    if (!conversationId) {
+      setMessages([])
+      return
+    }
+    let alive = true
+    setLoading(true)
+    apiFetch<MessageRow[]>(`/api/conversations/${conversationId}/messages`)
+      .then((rows) => {
+        if (alive) setMessages(rows.map(toView))
+      })
+      .catch(() => {
+        if (alive) setMessages([])
+      })
+      .finally(() => {
+        if (alive) setLoading(false)
+      })
+    return () => {
+      alive = false
+    }
+  }, [conversationId])
+
+  useEffect(() => {
+    const el = threadRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [messages])
+
+  const patchLast = useCallback((patch: Partial<ChatMessageView>) => {
+    setMessages((prev) => {
+      if (prev.length === 0) return prev
+      const next = [...prev]
+      next[next.length - 1] = { ...next[next.length - 1], ...patch }
+      return next
+    })
+  }, [])
+
+  const appendDelta = useCallback((channel: 'answer' | 'reasoning', text: string) => {
+    setMessages((prev) => {
+      if (prev.length === 0) return prev
+      const next = [...prev]
+      const last = next[next.length - 1]
+      next[next.length - 1] =
+        channel === 'reasoning'
+          ? { ...last, reasoning: last.reasoning + text }
+          : { ...last, content: last.content + text }
+      return next
+    })
+  }, [])
+
+  const runStream = useCallback(
+    async (conversationRow: ConversationRow, content: string) => {
+      setStreaming(true)
+      setInput('')
+      setMessages((prev) => [
+        ...prev,
+        { id: `local-${Date.now()}`, role: 'user', content, reasoning: '', status: 'complete', error: null, usage: null },
+        { id: 'streaming', role: 'assistant', content: '', reasoning: '', status: 'streaming', error: null, usage: null },
+      ])
+
+      const handle = streamChat(
+        conversationRow.id,
+        { content, modelId: selectedModelId ?? undefined },
+        {
+          onDelta: appendDelta,
+          onUsage: (usage) => patchLast({ usage }),
+          onError: (code, message) => patchLast({ status: 'error', error: { code, message } }),
+          onDone: (messageId) => patchLast({ id: messageId, status: 'complete' }),
+        },
+      )
+      handleRef.current = handle
+      await handle.promise.catch(() => undefined)
+      handleRef.current = null
+      setStreaming(false)
+      await store.refresh(['conversations', 'usage'])
+    },
+    [appendDelta, patchLast, selectedModelId],
+  )
+
+  const send = useCallback(async () => {
+    const content = input.trim()
+    if (content.length === 0 || streaming) return
+
+    if (active) {
+      await runStream(active, content)
+      return
+    }
+
+    try {
+      const created = await apiFetch<ConversationRow>('/api/conversations', {
+        method: 'POST',
+        json: { modelId: selectedModelId },
+      })
+      await store.refresh(['conversations'])
+      navigate(`/app/chat/${created.id}`)
+      await runStream(created, content)
+    } catch {
+      patchLast({ status: 'error', error: { code: 'request_failed', message: t('chat.sendFailed') } })
+    }
+  }, [active, input, navigate, patchLast, runStream, selectedModelId, streaming, t])
+
+  const regenerate = useCallback(() => {
+    if (streaming || !active) return
+    const lastUser = [...messages].reverse().find((message) => message.role === 'user')
+    if (lastUser) void runStream(active, lastUser.content)
+  }, [active, messages, runStream, streaming])
+
+  const stop = useCallback(() => {
+    handleRef.current?.abort()
+    patchLast({ status: 'stopped' })
+  }, [patchLast])
+
+  const removeConversation = useCallback(
+    async (id: string) => {
+      try {
+        await apiFetch(`/api/conversations/${id}`, { method: 'DELETE' })
+        await store.refresh(['conversations'])
+        if (id === conversationId) navigate('/app/chat')
+      } catch {
+        return
+      }
+    },
+    [conversationId, navigate],
+  )
+
+  const lastAssistantComplete =
+    messages.length > 0 && messages[messages.length - 1].role === 'assistant' && messages[messages.length - 1].status === 'complete'
+
+  return (
+    <div className="nexora-fill flex overflow-hidden rounded-xl border border-border bg-background">
+      <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
+        <ConversationList conversations={conversations} onDelete={(id) => void removeConversation(id)} />
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-semibold">{active?.title || t('chat.untitled')}</h1>
+          </div>
+          <div className="w-56 shrink-0">
+            <ModelPicker models={models} value={selectedModelId} onChange={setSelectedModelId} disabled={streaming} />
+          </div>
+        </div>
+
+        <div ref={threadRef} className="flex-1 space-y-6 overflow-y-auto px-4 py-6">
+          {loading && <p className="text-center text-sm text-muted-foreground">{t('common.loading')}</p>}
+          {!loading && messages.length === 0 && (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <span className="nexora-brand-mark mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold">
+                N
+              </span>
+              <h2 className="text-lg font-semibold">{t('chat.emptyTitle')}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{t('chat.emptyHint')}</p>
+            </div>
+          )}
+          {messages.map((message, index) => (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              canRegenerate={lastAssistantComplete && index === messages.length - 1}
+              onRegenerate={regenerate}
+            />
+          ))}
+        </div>
+
+        <div className="border-t border-border px-4 py-3">
+          <Composer
+            value={input}
+            onChange={setInput}
+            onSend={() => void send()}
+            onStop={stop}
+            streaming={streaming}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}

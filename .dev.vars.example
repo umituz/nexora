@@ -1,0 +1,6 @@
+# Local `wrangler dev` bindings (npm run dev:api). Live Worker secrets are set
+# with: printf '%s' "$VALUE" | npx cf-ship secret put NAME
+DATABASE_URL=
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://127.0.0.1:8792
+GROQ_API_KEY=
