@@ -120,10 +120,7 @@ async function* parseAnthropicStream(body: ReadableStream<Uint8Array>): AsyncIte
           if (event.type === 'message_start' && event.message?.usage) {
             usage = { inputTokens: event.message.usage.input_tokens ?? 0, outputTokens: 0, reasoningTokens: undefined }
           } else if (event.type === 'message_delta' && event.usage) {
-            const output = event.usage.output_tokens ?? 0
-            usage = usage
-              ? { ...usage, outputTokens: output }
-              : { inputTokens: 0, outputTokens: output, reasoningTokens: undefined }
+            usage = mergeOutputTokens(usage, event.usage.output_tokens ?? 0)
           } else if (event.type === 'message_stop') {
             yield* flushUsage()
           } else if (event.delta?.type === 'text_delta' && event.delta.text) {
@@ -152,6 +149,14 @@ function* parseAnthropicEvent(rawEvent: string): Generator<WireEvent> {
     } catch {
       continue
     }
+  }
+}
+
+function mergeOutputTokens(previous: TokenUsage | null, outputTokens: number): TokenUsage {
+  return {
+    inputTokens: previous?.inputTokens ?? 0,
+    outputTokens,
+    reasoningTokens: previous?.reasoningTokens,
   }
 }
 

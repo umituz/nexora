@@ -114,6 +114,12 @@ const en = {
     attachmentStored: 'Stored',
     attachmentFailed: 'Failed',
     attachmentUploadFailed: 'Could not upload the file.',
+    caps: {
+      reasoning: 'Reasoning',
+      vision: 'Vision',
+      tools: 'Tools',
+      structured: 'Structured',
+    },
   },
   projects: {
     title: 'Projects',

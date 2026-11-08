@@ -15,6 +15,7 @@ import { attachments, conversations, messages, projects, usageRecords } from '..
 import { capText, TEXT_EXTRACT_TOTAL_LIMIT } from '../text-extract'
 import { AiError, errorFromUnknown } from './errors'
 import { buildContext } from './context-manager'
+import { canFailover, failoverCandidate } from './failover'
 import { loadMemories } from './memories'
 import { resolveModel, type ResolvedModel } from './model-registry'
 import { routeModelRequest, type RoutedRequest } from './model-router'
@@ -33,6 +34,7 @@ export interface GenerationInput {
   modelId: string | null
   settings: GenerationSettings | undefined
   signal?: AbortSignal
+  waitUntil?: (promise: Promise<unknown>) => void
 }
 
 interface GenerationState {
@@ -154,8 +156,7 @@ async function dropTrailingAnswers(db: Db, conversationId: string): Promise<void
 }
 
 async function* streamAnswer(input: GenerationInput, state: GenerationState): AsyncGenerator<StreamEvent> {
-  const { db, userId, conversationId } = input
-  const { resolved, routed } = state
+  const { db, env, userId, conversationId } = input
 
   const history = await loadHistory(db, conversationId)
   const systemPrompt = buildSystemPrompt({
@@ -164,80 +165,104 @@ async function* streamAnswer(input: GenerationInput, state: GenerationState): As
     memories: await loadMemories(db, userId),
     attachments: await loadAttachmentTexts(db, conversationId),
   })
-  const context = buildContext(history, systemPrompt, {
-    contextWindow: resolved.model.contextWindow,
-    maxOutputTokens: routed.settings.maxOutputTokens,
-  })
 
-  let answer = ''
-  let reasoning = ''
-  let usage: TokenUsage | null = null
-  const startedAt = Date.now()
+  const attempts: RoutedRequest[] = [state.routed]
+  const fallback = await loadFailoverModel(db, env, state.resolved)
+  if (fallback) {
+    attempts.push(routeModelRequest(env, fallback, state.routed.settings))
+  }
 
-  try {
-    for await (const event of routed.adapter.stream({
-      externalModelId: resolved.model.externalId,
-      messages: context,
-      temperature: routed.settings.temperature,
+  for (let index = 0; index < attempts.length; index++) {
+    const routed = attempts[index]
+    const served = routed.model
+    let answer = ''
+    let reasoning = ''
+    let usage: TokenUsage | null = null
+    const startedAt = Date.now()
+    const context = buildContext(history, systemPrompt, {
+      contextWindow: served.model.contextWindow,
       maxOutputTokens: routed.settings.maxOutputTokens,
-      topP: routed.settings.topP,
-      signal: input.signal,
-    })) {
-      if (event.type === 'delta') {
-        if (event.channel === 'reasoning') reasoning += event.text
-        else answer += event.text
-        yield { type: 'delta', channel: event.channel, text: event.text }
-      } else {
-        usage = event.usage
-      }
-    }
-  } catch (err) {
-    const durationMs = Date.now() - startedAt
+    })
 
-    if (input.signal?.aborted === true) {
+    try {
+      for await (const event of routed.adapter.stream({
+        externalModelId: served.model.externalId,
+        messages: context,
+        temperature: routed.settings.temperature,
+        maxOutputTokens: routed.settings.maxOutputTokens,
+        topP: routed.settings.topP,
+        signal: input.signal,
+      })) {
+        if (event.type === 'delta') {
+          if (event.channel === 'reasoning') reasoning += event.text
+          else answer += event.text
+          yield { type: 'delta', channel: event.channel, text: event.text }
+        } else {
+          usage = event.usage
+        }
+      }
+    } catch (err) {
+      const durationMs = Date.now() - startedAt
+
+      if (input.signal?.aborted === true) {
+        const stopped = finalizeFailure(db, {
+          userId,
+          conversationId,
+          model: served,
+          status: 'stopped',
+          answer,
+          reasoning,
+          usage,
+          durationMs,
+          error: null,
+        })
+        if (input.waitUntil) input.waitUntil(stopped)
+        else await stopped
+        return
+      }
+
+      const aiError = err instanceof AiError ? err : errorFromUnknown(err)
+      if (index + 1 < attempts.length && canFailover(err, answer.length + reasoning.length)) continue
+
       await finalizeFailure(db, {
         userId,
         conversationId,
-        model: resolved,
-        status: 'stopped',
+        model: served,
+        status: 'error',
         answer,
         reasoning,
         usage,
         durationMs,
-        error: null,
+        error: aiError,
       })
+      yield { type: 'error', code: aiError.code, message: aiError.userMessage }
       return
     }
 
-    const aiError = err instanceof AiError ? err : errorFromUnknown(err)
-    await finalizeFailure(db, {
+    const durationMs = Date.now() - startedAt
+    const messageId = await finalizeSuccess(db, {
       userId,
       conversationId,
-      model: resolved,
-      status: 'error',
+      model: served,
       answer,
       reasoning,
       usage,
       durationMs,
-      error: aiError,
+      stickyModel: state.conversationModelId !== served.model.id,
     })
-    yield { type: 'error', code: aiError.code, message: aiError.userMessage }
+
+    if (usage) yield { type: 'usage', usage }
+    yield { type: 'done', messageId }
+    return
   }
+}
 
-  const durationMs = Date.now() - startedAt
-  const messageId = await finalizeSuccess(db, {
-    userId,
-    conversationId,
-    model: resolved,
-    answer,
-    reasoning,
-    usage,
-    durationMs,
-    stickyModel: state.conversationModelId !== resolved.model.id,
-  })
-
-  if (usage) yield { type: 'usage', usage }
-  yield { type: 'done', messageId }
+async function loadFailoverModel(db: Db, env: Env, primary: ResolvedModel): Promise<ResolvedModel | null> {
+  try {
+    return failoverCandidate(primary, await resolveModel(db, env, null))
+  } catch {
+    return null
+  }
 }
 
 async function loadHistory(db: Db, conversationId: string): Promise<ChatMessage[]> {
@@ -262,10 +287,23 @@ interface FinalizeBase {
   durationMs: number
 }
 
+async function trailingAssistantId(db: Db, conversationId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ id: messages.id, role: messages.role })
+    .from(messages)
+    .where(and(eq(messages.conversationId, conversationId), isNull(messages.deletedAt)))
+    .orderBy(desc(messages.createdAt))
+    .limit(1)
+  return row?.role === 'assistant' ? row.id : null
+}
+
 async function finalizeSuccess(
   db: Db,
   input: FinalizeBase & { stickyModel: boolean },
 ): Promise<string> {
+  const existing = await trailingAssistantId(db, input.conversationId)
+  if (existing) return existing
+
   const messageId = uid('msg')
   await db.insert(messages).values({
     id: messageId,
@@ -297,6 +335,8 @@ async function finalizeFailure(
   db: Db,
   input: FinalizeBase & { status: MessageStatus; error: AiError | null },
 ): Promise<void> {
+  if (await trailingAssistantId(db, input.conversationId)) return
+
   const messageId = uid('msg')
   await db.insert(messages).values({
     id: messageId,

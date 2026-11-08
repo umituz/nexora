@@ -61,9 +61,9 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 
 ## Phase 3 — Multi-provider and advanced models
 
-- [ ] Additional provider adapters (OpenAI-compatible family + at least one distinct protocol).
-- [ ] Extended capability registry (vision, tools, reasoning as data).
-- [ ] Model selection UX with capability badges; provider failover where safe.
+- [x] Additional provider adapters (OpenAI-compatible family + at least one distinct protocol).
+- [x] Extended capability registry (vision, tools, reasoning as data).
+- [x] Model selection UX with capability badges; provider failover where safe.
 - [ ] Usage/cost reporting UI (per user/conversation/model).
 
 ## Phase 4 — AI Studio and artifacts

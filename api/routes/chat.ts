@@ -1,14 +1,14 @@
 import { Hono } from 'hono'
 import { validator } from 'hono/validator'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
-import { ApiError, stampUpdate } from '@umituz/web-hono'
+import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
 import { validateJson } from '@umituz/web-hono/validator'
 import { z } from 'zod'
 import { GENERATION_BOUNDS, type AiErrorCode, type StreamEvent } from '@shared/ai/contracts'
 import type { Env } from '../env'
 import { getDb } from '../db'
-import { conversations, messages } from '../schema'
+import { conversations, messages, models } from '../schema'
 import { requireUser } from '../session'
 import { runGeneration, type GenerationMode } from '../ai/execution'
 import { replayFirst, sseStreamResponse } from '../ai/streaming'
@@ -38,6 +38,12 @@ const streamBodySchema = z
   })
 
 const editBodySchema = z.object({ content: z.string().min(1).max(32_000) })
+
+const stopBodySchema = z.object({
+  answer: z.string().max(100_000).default(''),
+  reasoning: z.string().max(100_000).optional(),
+  modelId: z.string().optional(),
+})
 
 const AI_ERROR_STATUS: Readonly<Record<AiErrorCode, ContentfulStatusCode>> = {
   invalid_key: 502,
@@ -69,6 +75,7 @@ chatRouter.post(
       modelId: body.modelId ?? null,
       settings: body.settings,
       signal: c.req.raw.signal,
+      waitUntil: (promise) => c.executionCtx.waitUntil(promise),
     })
 
     let first: IteratorResult<StreamEvent>
@@ -84,6 +91,56 @@ chatRouter.post(
 
     if (first.done) return c.json({ error: 'Generation produced no output' }, 500)
     return sseStreamResponse(replayFirst(first.value, events))
+  },
+)
+
+chatRouter.post(
+  '/conversations/:id/stop',
+  validator('json', validateJson(stopBodySchema, 'Invalid stop payload')),
+  async (c) => {
+    const user = await requireUser(c)
+    const db = getDb(c.env)
+    const conversationId = c.req.param('id')
+    const body = c.req.valid('json')
+
+    const [conversation] = await db
+      .select({ id: conversations.id, modelId: conversations.modelId })
+      .from(conversations)
+      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, user.id), isNull(conversations.deletedAt)))
+      .limit(1)
+    if (!conversation) return c.json({ error: 'Conversation not found' }, 404)
+
+    const [last] = await db
+      .select()
+      .from(messages)
+      .where(and(eq(messages.conversationId, conversationId), isNull(messages.deletedAt)))
+      .orderBy(desc(messages.createdAt))
+      .limit(1)
+    if (!last) return c.json({ error: 'Conversation has no messages' }, 400)
+    if (last.role === 'assistant') return c.json(last, 200)
+
+    let modelId = conversation.modelId
+    if (body.modelId) {
+      const [model] = await db.select({ id: models.id }).from(models).where(eq(models.id, body.modelId)).limit(1)
+      if (model) modelId = model.id
+    }
+
+    const [row] = await db
+      .insert(messages)
+      .values({
+        id: uid('msg'),
+        conversationId,
+        userId: user.id,
+        role: 'assistant',
+        content: body.answer,
+        reasoning: body.reasoning && body.reasoning.length > 0 ? body.reasoning : null,
+        modelId,
+        status: 'stopped',
+      })
+      .returning()
+
+    await db.update(conversations).set(stampUpdate(conversations)).where(eq(conversations.id, conversationId))
+    return c.json(row, 201)
   },
 )
 

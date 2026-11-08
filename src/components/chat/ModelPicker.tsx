@@ -1,9 +1,16 @@
 import type { ReactNode } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { Braces, Brain, ChevronDown, Eye, Wrench } from 'lucide-react'
 import { NativeSelect } from '@umituz/web-design-system'
 import type { NativeSelectOption } from '@umituz/web-design-system'
 import type { PublicModel } from '@shared/ai/contracts'
 import { useT } from '@/i18n'
+
+const CAP_BADGES = [
+  { key: 'reasoning', icon: Brain, labelKey: 'chat.caps.reasoning' },
+  { key: 'vision', icon: Eye, labelKey: 'chat.caps.vision' },
+  { key: 'tools', icon: Wrench, labelKey: 'chat.caps.tools' },
+  { key: 'structured', icon: Braces, labelKey: 'chat.caps.structured' },
+] as const
 
 interface ModelPickerProps {
   models: PublicModel[]
@@ -39,6 +46,19 @@ export function ModelPicker({ models, value, onChange, disabled }: ModelPickerPr
         aria-label={t('chat.model')}
       />
       {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+      {selected && (
+        <div className="flex flex-wrap gap-1">
+          {CAP_BADGES.filter((badge) => selected.capabilities[badge.key]).map((badge) => (
+            <span
+              key={badge.key}
+              className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            >
+              <badge.icon size={10} aria-hidden="true" />
+              {t(badge.labelKey)}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

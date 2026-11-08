@@ -46,6 +46,7 @@ export default function ChatPage(): ReactNode {
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const handleRef = useRef<StreamHandle | null>(null)
   const streamingConversationRef = useRef<string | null>(null)
+  const stoppedRef = useRef(false)
   const threadRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -149,7 +150,9 @@ export default function ChatPage(): ReactNode {
         streamingConversationRef.current = null
         setStreaming(false)
         await store.refresh(['conversations', 'usage'])
-        if (conversationId === conversationRow.id) {
+        if (stoppedRef.current) {
+          stoppedRef.current = false
+        } else if (conversationId === conversationRow.id) {
           const rows = await apiFetch<MessageRow[]>(`/api/conversations/${conversationRow.id}/messages`).catch(() => null)
           if (rows) setMessages(rows.map(toView))
         }
@@ -222,10 +225,27 @@ export default function ChatPage(): ReactNode {
     if (hasUser) void runStream(active, null, 'regenerate')
   }, [active, messages, runStream, streaming])
 
-  const stop = useCallback(() => {
+  const stop = useCallback(async () => {
+    const conversation = active
+    const last = messages[messages.length - 1]
     handleRef.current?.abort()
     patchLast({ status: 'stopped' })
-  }, [patchLast])
+    if (!conversation || !last || last.role !== 'assistant') return
+    stoppedRef.current = true
+    try {
+      const row = await apiFetch<MessageRow>(`/api/conversations/${conversation.id}/stop`, {
+        method: 'POST',
+        json: {
+          answer: last.content,
+          ...(last.reasoning ? { reasoning: last.reasoning } : {}),
+          ...(selectedModelId ? { modelId: selectedModelId } : {}),
+        },
+      })
+      patchLast({ id: row.id, status: row.status, reasoning: row.reasoning ?? '' })
+    } catch {
+      stoppedRef.current = false
+    }
+  }, [active, messages, patchLast, selectedModelId])
 
   const removeConversation = useCallback(
     async (id: string) => {

@@ -21,6 +21,7 @@ api/ai/
 ├── prompt-engine.ts    # system prompt assembly, versioned templates, dynamic context slots
 ├── context-manager.ts  # history windowing, token estimation, context budget enforcement
 ├── streaming.ts        # provider-independent SSE event protocol + cancellation
+├── failover.ts         # pure policy: when a failed attempt may retry on another provider
 ├── execution.ts        # generation lifecycle orchestration (validate → context → stream → persist → usage)
 ├── usage.ts            # cost computation from registry pricing; usage record construction
 └── errors.ts           # AiError taxonomy; normalization of provider HTTP/stream failures
@@ -88,8 +89,24 @@ Standard SSE (`text/event-stream`) on `POST /api/chat/:conversationId/stream`:
 | `done` | `{ messageId }` | assistant message persisted |
 | `error` | `{ code, message }` | normalized failure (stream continues to close) |
 
-Cancellation: the client aborts the fetch; the server watches the request signal,
-aborts the upstream call, and persists partial output with status `stopped`.
+Cancellation: the client aborts the fetch and then persists the partial text it already
+received via `POST /api/conversations/:id/stop` (status `stopped`). The server also watches
+the request signal and attempts the same persist through `waitUntil`, but the Workers
+runtime cancels the request's I/O context on client disconnect, so the client-driven stop
+is the reliable path (verified live, 2026-11-08). The stop endpoint is idempotent: if an
+assistant row already trails the thread it is returned unchanged, and server-side
+finalizers skip inserting when a trailing assistant row exists, so a raced stop and
+server finalize never duplicate rows.
+
+## Provider failover
+
+When an attempt fails before any output has streamed and the error is transient
+(`capacity`, `rate_limited`, `timeout`, `network`), execution retries once on the
+workspace default model — but only if it lives on a **different provider** and supports
+streaming. Deterministic failures (`invalid_key`, `invalid_request`,
+`model_unavailable`, …) and mid-stream failures (partial output already delivered)
+never fail over: the user sees the error and the partial message persists. Policy is a
+pure, unit-tested module (`failover.ts`); orchestration lives in `execution.ts`.
 
 ## Model router
 
