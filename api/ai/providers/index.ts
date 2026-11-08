@@ -1,8 +1,10 @@
 import { AiError } from '../errors'
 import { createAnthropicAdapter } from './anthropic'
+import { createOpenAiImageAdapter, type ImageAdapter } from './images'
 import { createOpenAiCompatibleAdapter, type ChatAdapter } from './openai-compatible'
 
 export type { ChatAdapter, ProviderEvent, AdapterRequest } from './openai-compatible'
+export type { ImageAdapter, ImageRequest, ImageResult } from './images'
 
 export interface ProviderBinding {
   adapter: string
@@ -11,6 +13,7 @@ export interface ProviderBinding {
 }
 
 const TIMEOUT_MS = 60_000
+const IMAGE_TIMEOUT_MS = 120_000
 
 export function resolveProviderKey(env: object, apiKeyEnv: string): string {
   const value = (env as Record<string, string | undefined>)[apiKeyEnv]
@@ -46,4 +49,16 @@ export function adapterFor(env: object, provider: ProviderBinding): ChatAdapter 
     })
   }
   throw new AiError('model_unavailable', `Unsupported adapter kind: ${provider.adapter}`)
+}
+
+export function imageAdapterFor(env: object, provider: ProviderBinding): ImageAdapter {
+  const apiKey = resolveProviderKey(env, provider.apiKeyEnv)
+  if (provider.adapter !== 'openai-compatible') {
+    throw new AiError('model_unavailable', `Adapter kind does not support images: ${provider.adapter}`)
+  }
+  return createOpenAiImageAdapter({
+    baseUrl: provider.baseUrl.replace(/\/$/, ''),
+    apiKey,
+    timeoutMs: IMAGE_TIMEOUT_MS,
+  })
 }

@@ -22,12 +22,13 @@ interface ModelPickerProps {
 export function ModelPicker({ models, value, onChange, disabled }: ModelPickerProps): ReactNode {
   const t = useT()
 
-  const options: NativeSelectOption[] = models.map((model) => ({
+  const chatModels = models.filter((model) => model.outputTypes.includes('text'))
+  const options: NativeSelectOption[] = chatModels.map((model) => ({
     value: model.id,
     label: model.displayName,
   }))
 
-  const selected = models.find((model) => model.id === value)
+  const selected = chatModels.find((model) => model.id === value)
   const hint = selected
     ? `${selected.providerName} · ${Math.round(selected.contextWindow / 1024)}K ${t('chat.contextLabel')} · $${selected.pricing.inputPerMTok}/$${selected.pricing.outputPerMTok} per MTok`
     : null
@@ -42,7 +43,7 @@ export function ModelPicker({ models, value, onChange, disabled }: ModelPickerPr
         options={options}
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value || null)}
-        disabled={disabled || models.length === 0}
+        disabled={disabled || chatModels.length === 0}
         aria-label={t('chat.model')}
       />
       {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}

@@ -55,7 +55,8 @@ export default function ChatPage(): ReactNode {
   const active = conversations.find((row) => row.id === conversationId)
 
   useEffect(() => {
-    setSelectedModelId(active?.modelId ?? models.find((model) => model.isDefault)?.id ?? models[0]?.id ?? null)
+    const chatModels = models.filter((model) => model.outputTypes.includes('text'))
+    setSelectedModelId(active?.modelId ?? chatModels.find((model) => model.isDefault)?.id ?? chatModels[0]?.id ?? null)
   }, [active?.modelId, models])
 
   useEffect(() => {

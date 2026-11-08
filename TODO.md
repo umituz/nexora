@@ -68,7 +68,7 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 
 ## Phase 4 — AI Studio and artifacts
 
-- [ ] Image generation integration (provider-capability driven).
+- [x] Image generation integration (provider-capability driven).
 - [ ] Artifact store, versioning, export.
 
 ## Phase 5 — Agents and tools

@@ -55,6 +55,7 @@ const SEED_PROVIDERS: SeedProvider[] = [
 ]
 
 const CHAT: ModelCapabilities = { streaming: true, tools: true, structured: true, reasoning: true, vision: false }
+const IMAGE: ModelCapabilities = { streaming: false, tools: false, structured: false, reasoning: false, vision: false }
 
 const SEED_MODELS: SeedModel[] = [
   {
@@ -201,6 +202,38 @@ const SEED_MODELS: SeedModel[] = [
     isDefault: false,
     sortOrder: 90,
   },
+  {
+    id: 'model_gpt_image_2_5_flare',
+    providerId: 'provider_openai',
+    externalId: 'gpt-image-2.5-flare',
+    displayName: 'GPT Image 2.5 Flare',
+    family: 'gpt-image',
+    description: 'Fast, high-quality everyday image generation. Text input and image output token rates.',
+    capabilities: IMAGE,
+    inputTypes: ['text'],
+    outputTypes: ['image'],
+    contextWindow: 4096,
+    maxOutputTokens: 8192,
+    pricing: { inputPerMTok: 5, outputPerMTok: 30, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 100,
+  },
+  {
+    id: 'model_gpt_image_2_5_sunburst',
+    providerId: 'provider_openai',
+    externalId: 'gpt-image-2.5-sunburst',
+    displayName: 'GPT Image 2.5 Sunburst',
+    family: 'gpt-image',
+    description: 'Most capable image generation and editing model. Text input and image output token rates.',
+    capabilities: IMAGE,
+    inputTypes: ['text'],
+    outputTypes: ['image'],
+    contextWindow: 4096,
+    maxOutputTokens: 8192,
+    pricing: { inputPerMTok: 5, outputPerMTok: 30, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 110,
+  },
 ]
 
 async function main() {
@@ -217,7 +250,7 @@ async function main() {
   }
 
   console.log(
-    `Seeded ${SEED_PROVIDERS.length} providers and ${SEED_MODELS.length} models (Groq verified against the live catalog 2026-11-08; OpenAI and Anthropic from official published pricing 2026-11-08).`,
+    `Seeded ${SEED_PROVIDERS.length} providers and ${SEED_MODELS.length} models (Groq verified against the live catalog 2026-11-08; OpenAI, Anthropic, and GPT Image from official published pricing 2026-11-08).`,
   )
 }
 

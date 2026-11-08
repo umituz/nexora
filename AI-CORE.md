@@ -13,6 +13,7 @@ isolated in adapters, database access behind narrow repository functions.
 api/ai/
 ├── providers/
 │   ├── openai-compatible.ts  # adapter: OpenAI chat-completions wire (Groq, OpenAI), SSE, error mapping
+│   ├── images.ts             # adapter: OpenAI Images API wire (gpt-image family), b64 payload, usage
 │   ├── anthropic.ts          # adapter: Anthropic Messages API wire (own SSE event format)
 │   └── index.ts              # adapter registry: adapter kind (from provider row) → factory
 ├── memories.ts         # long-term memory selection (pinned-first, recency, caps) + loader
@@ -77,6 +78,28 @@ first-class in the contract. Usage arrives in a terminal chunk via
   `message_start`/`message_delta` events, and sampling params (`temperature`,
   `top_p`) are omitted because current Claude models reject them with a 400 — the
   registry's temperature/topP settings apply to OpenAI-compatible providers only.
+
+## Image generation
+
+- `POST /api/artifacts` generates one image from a prompt: `resolveImageModel`
+  picks the requested model or the first available model whose `outputTypes`
+  include `image` (chat models are rejected with 400), the OpenAI Images adapter
+  posts `{base}/images/generations` (`model`, `prompt`, `n: 1`, `size`,
+  `quality`) and reads `data[0].b64_json` plus the `usage` object
+  (`input_tokens`/`output_tokens`). Tokens and cost flow through the same
+  usage pipeline as chat (registry pricing, micro-USD records) with no
+  conversation binding.
+- Wire and pricing verified against OpenAI's official docs (2026-11-08):
+  gpt-image-2.5 text input $5/MTok, image output $30/MTok. The seeded image
+  models' `contextWindow`/`maxOutputTokens` are internal validation bounds —
+  OpenAI publishes no context window for them; prompts are capped at 4000
+  chars by the route.
+- Image bytes are stored base64 in Neon (pilot path, ≤12 MB base64 cap);
+  R2 object storage is the documented production path, same as attachments.
+- The pipeline is E2E-verified against the documented wire via a scratch local
+  stub provider (generate → store → serve → download → delete → usage record);
+  **live OpenAI generation is not verified** — set `OPENAI_API_KEY` to activate
+  the seeded gpt-image models.
 
 ## Server → client streaming protocol (`streaming.ts`)
 

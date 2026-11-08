@@ -103,6 +103,10 @@ session. Model/provider registries are global read-only reference data.
   the system prompt), binary files are stored without extraction. Storage is base64 in Neon
   for the pilot; R2 is the production path (swap `attachments.contentB64` for an R2 key —
   `@umituz/web-hono` R2 stream helpers already provide the write/read primitives).
+- Generated artifacts (studio images): same posture — base64 in Neon capped at 12 MB
+  (`artifacts.dataBase64`), served only to the owning user through `/image` (inline,
+  immutable cache) and `/download` (attachment) endpoints; R2 swap follows the
+  attachments path.
 - Errors normalized through the fleet error envelope (`{ error, details? }`); provider
   internals never leak to clients.
 

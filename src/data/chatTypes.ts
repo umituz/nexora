@@ -58,6 +58,19 @@ export interface MemoryRow {
   updatedAt: string
 }
 
+export interface ArtifactRow {
+  id: string
+  kind: 'image'
+  prompt: string
+  revisedPrompt: string | null
+  modelId: string | null
+  mimeType: string
+  size: string
+  quality: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface StreamCallbacks {
   onDelta: (channel: 'answer' | 'reasoning', text: string) => void
   onUsage?: (usage: TokenUsage) => void

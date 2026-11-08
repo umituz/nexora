@@ -134,6 +134,27 @@ export const usageRecords = pgTable(
 export const ATTACHMENT_STATUSES = ['pending', 'processed', 'stored', 'failed'] as const
 export type AttachmentStatus = (typeof ATTACHMENT_STATUSES)[number]
 
+export const ARTIFACT_KINDS = ['image'] as const
+export type ArtifactKind = (typeof ARTIFACT_KINDS)[number]
+
+export const artifacts = pgTable(
+  tn('artifacts'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => baUser.id),
+    kind: text('kind').$type<ArtifactKind>().notNull().default('image'),
+    prompt: text('prompt').notNull(),
+    revisedPrompt: text('revised_prompt'),
+    modelId: text('model_id').references(() => models.id),
+    mimeType: text('mime_type').notNull().default('image/png'),
+    size: text('size').notNull(),
+    quality: text('quality').notNull().default('auto'),
+    dataBase64: text('data_base64').notNull(),
+    ...trio(),
+  },
+  (t) => [index(tn('artifacts_user_idx')).on(t.userId, t.createdAt)],
+)
+
 export const attachments = pgTable(
   tn('attachments'),
   {
