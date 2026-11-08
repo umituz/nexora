@@ -96,6 +96,11 @@ first-class in the contract. Usage arrives in a terminal chunk via
   chars by the route.
 - Image bytes are stored base64 in Neon (pilot path, ≤12 MB base64 cap);
   R2 object storage is the documented production path, same as attachments.
+- Versioning: artifacts carry `rootId` + `version`. Generating with `basedOnId`
+  creates the next version of the base artifact's root (prompt, model, size and
+  quality inherited unless overridden) — a chain of variations stays one root
+  regardless of which member it branches from. `GET /api/artifacts/:id/versions`
+  returns the whole chain, newest first.
 - The pipeline is E2E-verified against the documented wire via a scratch local
   stub provider (generate → store → serve → download → delete → usage record);
   **live OpenAI generation is not verified** — set `OPENAI_API_KEY` to activate

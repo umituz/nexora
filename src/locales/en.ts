@@ -173,6 +173,8 @@ const en = {
     empty: 'Nothing here yet — your generated images will appear in this gallery.',
     download: 'Download image',
     delete: 'Delete image',
+    variation: 'Generate variation',
+    version: 'v{{version}}',
   },
   usage: {
     title: 'Usage',

@@ -4,7 +4,7 @@ import { usePageTitle } from '@umituz/web-dashboard'
 import { ApiClientError, apiFetch } from '@umituz/web-hono/client'
 import { Button, NativeSelect, Textarea } from '@umituz/web-design-system'
 import type { NativeSelectOption } from '@umituz/web-design-system'
-import { Download, Loader2, Sparkles, Trash2 } from 'lucide-react'
+import { Copy, Download, Loader2, Sparkles, Trash2 } from 'lucide-react'
 import type { PublicModel } from '@shared/ai/contracts'
 import type { ArtifactRow } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
@@ -60,6 +60,26 @@ export default function StudioPage(): ReactNode {
       setGenerating(false)
     }
   }, [generating, prompt, quality, selectedModelId, size, t])
+
+  const variation = useCallback(
+    async (artifact: ArtifactRow) => {
+      if (generating) return
+      setGenerating(true)
+      setError(null)
+      try {
+        await apiFetch<ArtifactRow>('/api/artifacts', {
+          method: 'POST',
+          json: { basedOnId: artifact.id },
+        })
+        await store.refresh(['artifacts', 'usage', 'usageBreakdown'])
+      } catch (err) {
+        setError(err instanceof ApiClientError ? err.message : t('studio.generateFailed'))
+      } finally {
+        setGenerating(false)
+      }
+    },
+    [generating, t],
+  )
 
   const remove = useCallback(async (id: string) => {
     try {
@@ -157,8 +177,19 @@ export default function StudioPage(): ReactNode {
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-muted-foreground">
                       {artifact.size} · {artifact.quality}
+                      {artifact.version > 1 ? ` · ${t('studio.version', { version: artifact.version })}` : ''}
                     </span>
                     <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => void variation(artifact)}
+                        disabled={generating || imageModels.length === 0}
+                        aria-label={t('studio.variation')}
+                        title={t('studio.variation')}
+                      >
+                        <Copy size={13} aria-hidden="true" />
+                      </Button>
                       <a
                         href={`/api/artifacts/${artifact.id}/download`}
                         className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-foreground"

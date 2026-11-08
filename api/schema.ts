@@ -149,10 +149,15 @@ export const artifacts = pgTable(
     mimeType: text('mime_type').notNull().default('image/png'),
     size: text('size').notNull(),
     quality: text('quality').notNull().default('auto'),
+    rootId: text('root_id').notNull(),
+    version: integer('version').notNull().default(1),
     dataBase64: text('data_base64').notNull(),
     ...trio(),
   },
-  (t) => [index(tn('artifacts_user_idx')).on(t.userId, t.createdAt)],
+  (t) => [
+    index(tn('artifacts_user_idx')).on(t.userId, t.createdAt),
+    index(tn('artifacts_root_idx')).on(t.rootId, t.version),
+  ],
 )
 
 export const attachments = pgTable(

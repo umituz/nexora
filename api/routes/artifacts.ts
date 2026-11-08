@@ -38,12 +38,19 @@ const MIME_EXTENSIONS: Readonly<Record<string, string>> = {
   'image/gif': 'gif',
 }
 
-const generateBodySchema = z.object({
-  prompt: z.string().min(1).max(4000),
-  modelId: z.string().optional(),
-  size: z.enum([...IMAGE_SIZES] as [ImageSize, ...ImageSize[]]).default('1024x1024'),
-  quality: z.enum([...IMAGE_QUALITIES] as [ImageQuality, ...ImageQuality[]]).default('auto'),
-})
+const generateBodySchema = z
+  .object({
+    prompt: z.string().min(1).max(4000).optional(),
+    modelId: z.string().optional(),
+    size: z.enum([...IMAGE_SIZES] as [ImageSize, ...ImageSize[]]).optional(),
+    quality: z.enum([...IMAGE_QUALITIES] as [ImageQuality, ...ImageQuality[]]).optional(),
+    basedOnId: z.string().optional(),
+  })
+  .superRefine((body, ctx) => {
+    if (!body.basedOnId && !body.prompt) {
+      ctx.addIssue({ code: 'custom', path: ['prompt'], message: 'Message content is required' })
+    }
+  })
 
 const metadataColumns = {
   id: artifacts.id,
@@ -54,6 +61,8 @@ const metadataColumns = {
   mimeType: artifacts.mimeType,
   size: artifacts.size,
   quality: artifacts.quality,
+  rootId: artifacts.rootId,
+  version: artifacts.version,
   createdAt: artifacts.createdAt,
   updatedAt: artifacts.updatedAt,
 }
@@ -66,7 +75,21 @@ artifactsRouter.post(
     const db = getDb(c.env)
     const body = c.req.valid('json')
 
-    const resolved = await resolveImageModel(db, c.env, body.modelId ?? null)
+    let baseArtifact: typeof artifacts.$inferSelect | null = null
+    if (body.basedOnId) {
+      const [found] = await db
+        .select()
+        .from(artifacts)
+        .where(and(eq(artifacts.id, body.basedOnId), eq(artifacts.userId, user.id), isNull(artifacts.deletedAt)))
+        .limit(1)
+      if (!found) return c.json({ error: 'Artifact not found' }, 404)
+      baseArtifact = found
+    }
+
+    const prompt = body.prompt ?? baseArtifact?.prompt ?? ''
+    const size = body.size ?? baseArtifact?.size ?? '1024x1024'
+    const quality = body.quality ?? baseArtifact?.quality ?? 'auto'
+    const resolved = await resolveImageModel(db, c.env, body.modelId ?? baseArtifact?.modelId ?? null)
     const adapter = imageAdapterFor(c.env, resolved.provider)
 
     const startedAt = Date.now()
@@ -74,9 +97,9 @@ artifactsRouter.post(
     try {
       generated = await adapter.generate({
         externalModelId: resolved.model.externalId,
-        prompt: body.prompt,
-        size: body.size,
-        quality: body.quality,
+        prompt,
+        size,
+        quality,
       })
     } catch (err) {
       if (err instanceof ApiError) return c.json({ error: err.message }, err.status)
@@ -86,17 +109,31 @@ artifactsRouter.post(
     const durationMs = Date.now() - startedAt
 
     const artifactId = uid('art')
+    const rootId = baseArtifact?.rootId ?? artifactId
+    let version = 1
+    if (baseArtifact) {
+      const [latest] = await db
+        .select({ version: artifacts.version })
+        .from(artifacts)
+        .where(and(eq(artifacts.rootId, rootId), isNull(artifacts.deletedAt)))
+        .orderBy(desc(artifacts.version))
+        .limit(1)
+      version = (latest?.version ?? 0) + 1
+    }
+
     const [row] = await db
       .insert(artifacts)
       .values({
         id: artifactId,
         userId: user.id,
         kind: 'image',
-        prompt: body.prompt,
+        prompt,
         modelId: resolved.model.id,
         mimeType: 'image/png',
-        size: body.size,
-        quality: body.quality,
+        size,
+        quality,
+        rootId,
+        version,
         dataBase64: generated.images[0],
       })
       .returning(metadataColumns)
@@ -146,6 +183,25 @@ artifactsRouter.get('/:id', async (c) => {
     .limit(1)
   if (!row) return c.json({ error: 'Artifact not found' }, 404)
   return c.json(row)
+})
+
+artifactsRouter.get('/:id/versions', async (c) => {
+  const user = await requireUser(c)
+  const db = getDb(c.env)
+
+  const [row] = await db
+    .select({ rootId: artifacts.rootId })
+    .from(artifacts)
+    .where(and(eq(artifacts.id, c.req.param('id')), eq(artifacts.userId, user.id), isNull(artifacts.deletedAt)))
+    .limit(1)
+  if (!row) return c.json({ error: 'Artifact not found' }, 404)
+
+  const rows = await db
+    .select(metadataColumns)
+    .from(artifacts)
+    .where(and(eq(artifacts.rootId, row.rootId), eq(artifacts.userId, user.id), isNull(artifacts.deletedAt)))
+    .orderBy(desc(artifacts.version))
+  return c.json(rows)
 })
 
 artifactsRouter.get('/:id/image', async (c) => {

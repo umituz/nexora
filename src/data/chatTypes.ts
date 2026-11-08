@@ -67,6 +67,8 @@ export interface ArtifactRow {
   mimeType: string
   size: string
   quality: string
+  rootId: string
+  version: number
   createdAt: string
   updatedAt: string
 }
