@@ -36,6 +36,17 @@ export interface MessageRow {
   createdAt: string
 }
 
+export interface AttachmentRow {
+  id: string
+  conversationId: string
+  name: string
+  mimeType: string
+  sizeBytes: number
+  status: 'pending' | 'processed' | 'stored' | 'failed'
+  errorMessage: string | null
+  createdAt: string
+}
+
 export interface StreamCallbacks {
   onDelta: (channel: 'answer' | 'reasoning', text: string) => void
   onUsage?: (usage: TokenUsage) => void

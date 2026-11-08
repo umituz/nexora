@@ -98,7 +98,11 @@ session. Model/provider registries are global read-only reference data.
 - All chat/usage endpoints require a session; rows are user-scoped.
 - Model outputs are untrusted input: rendered as markdown through DS `MarkdownText`
   (no raw HTML injection), never interpreted as instructions.
-- Uploads (Phase 2+) will be validated by type/size and processed server-side only.
+- Uploads: multipart only, ≤2 MB per file, validated by type/size and processed server-side
+  only; text-like files get synchronous UTF-8 extraction (capped 24 K/file, 48 K total into
+  the system prompt), binary files are stored without extraction. Storage is base64 in Neon
+  for the pilot; R2 is the production path (swap `attachments.contentB64` for an R2 key —
+  `@umituz/web-hono` R2 stream helpers already provide the write/read primitives).
 - Errors normalized through the fleet error envelope (`{ error, details? }`); provider
   internals never leak to clients.
 

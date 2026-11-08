@@ -43,7 +43,7 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Chat streaming endpoint (SSE) with full execution lifecycle.
 - [x] Chat UI: conversation sidebar, message thread, streaming render, markdown + code blocks,
       composer, model selector, stop generation, copy response, regenerate.
-- [ ] Message editing (edit-and-resend of a previous user turn).
+- [x] Message editing (edit-and-resend of a previous user turn).
 - [x] Empty/loading/error states; provider error surfacing.
 - [x] Seed scripts: providers, models (verified live data), demo user.
 - [x] Unit tests for AI Core modules (router, context manager, prompt engine, adapter, usage).
@@ -51,10 +51,12 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 
 ## Phase 2 — Projects, files, memory
 
-- [ ] Projects CRUD + project instructions + context boundary.
-- [ ] File uploads (attachment metadata, processing states), conversation attachments.
+- [x] Projects CRUD + project instructions + context boundary.
+- [x] File uploads (attachment metadata, processing states), conversation attachments
+      (text extraction sync, base64 in Neon ≤2 MB, R2 documented as production path).
 - [ ] Memory engine (create/retrieve/update/delete, relevance, source tracking, user controls).
-- [ ] Context manager integration: project instructions + memories into request context.
+- [x] Context manager integration: project instructions + attachments into request context
+      (memories pending the memory engine).
 
 ## Phase 3 — Multi-provider and advanced models
 

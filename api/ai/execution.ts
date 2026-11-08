@@ -11,7 +11,8 @@ import {
   type TokenUsage,
 } from '@shared/ai/contracts'
 import type { Db, Env } from '../env'
-import { conversations, messages, projects, usageRecords } from '../schema'
+import { attachments, conversations, messages, projects, usageRecords } from '../schema'
+import { capText, TEXT_EXTRACT_TOTAL_LIMIT } from '../text-extract'
 import { AiError, errorFromUnknown } from './errors'
 import { buildContext } from './context-manager'
 import { resolveModel, type ResolvedModel } from './model-registry'
@@ -107,6 +108,24 @@ async function loadProjectContext(db: Db, projectId: string | null, userId: stri
   return { name: row.name, instructions: row.instructions ?? '' }
 }
 
+async function loadAttachmentTexts(db: Db, conversationId: string): Promise<{ name: string; text: string }[]> {
+  const rows = await db
+    .select({ name: attachments.name, textContent: attachments.textContent })
+    .from(attachments)
+    .where(and(eq(attachments.conversationId, conversationId), eq(attachments.status, 'processed'), isNull(attachments.deletedAt)))
+    .orderBy(asc(attachments.createdAt))
+
+  const out: { name: string; text: string }[] = []
+  let used = 0
+  for (const row of rows) {
+    if (!row.textContent || used >= TEXT_EXTRACT_TOTAL_LIMIT) continue
+    const text = capText(row.textContent, Math.max(0, TEXT_EXTRACT_TOTAL_LIMIT - used))
+    out.push({ name: row.name, text })
+    used += text.length
+  }
+  return out
+}
+
 async function dropTrailingAnswers(db: Db, conversationId: string): Promise<void> {
   const trailing = await db
     .select({ id: messages.id, role: messages.role })
@@ -138,7 +157,11 @@ async function* streamAnswer(input: GenerationInput, state: GenerationState): As
   const { resolved, routed } = state
 
   const history = await loadHistory(db, conversationId)
-  const systemPrompt = buildSystemPrompt({ settings: state.conversationSettings, project: state.project })
+  const systemPrompt = buildSystemPrompt({
+    settings: state.conversationSettings,
+    project: state.project,
+    attachments: await loadAttachmentTexts(db, conversationId),
+  })
   const context = buildContext(history, systemPrompt, {
     contextWindow: resolved.model.contextWindow,
     maxOutputTokens: routed.settings.maxOutputTokens,

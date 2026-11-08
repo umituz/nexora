@@ -3,6 +3,7 @@ import type { Env } from './env'
 import { conversationsRouter } from './routes/conversations'
 import { modelsRouter } from './routes/models'
 import { projectsRouter } from './routes/projects'
+import { attachmentsRouter } from './routes/attachments'
 import { chatRouter } from './routes/chat'
 import { usageRouter } from './routes/usage'
 import { authRouter } from './auth'
@@ -18,6 +19,7 @@ export default createApi<Env>({
     ['/models', modelsRouter],
     ['/projects', projectsRouter],
     ['/', chatRouter],
+    ['/', attachmentsRouter],
     ['/usage', usageRouter],
     ['/auth', authRouter],
   ],

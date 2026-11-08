@@ -83,13 +83,17 @@ aborts the upstream call, and persists partial output with status `stopped`.
   always ending with the newest user message; system prompt occupies the head.
 - Token estimation: characters/4 heuristic (no tokenizer dependency); budget checks
   against registry `context_window` minus requested `max_output_tokens`.
-- Later phases add: project instructions, retrieved knowledge, memories — each a
-  prioritized context segment, not ad-hoc string concatenation.
+- Phase 2 landed: project instructions and attachment text are prioritized context
+  segments assembled by the prompt engine (never ad-hoc concatenation in handlers).
+  Retrieved knowledge and memories follow the same pattern.
 
 ## Prompt engine
 
-- Versioned system prompt template (constant + interpolation slots), assembled per
-  request: base persona → workspace/project instructions (Phase 2) → context segments.
+- Versioned system prompt template (constant + interpolation slots, currently v2),
+  assembled per request: base persona → conversation settings → project instructions →
+  memories → attachment text blocks (delimited begin/end, capped).
+- Attachment content is untrusted data: injected inside delimited blocks, never treated
+  as system instructions.
 - Prompt text never lives in UI components or route handlers.
 
 ## Usage & cost

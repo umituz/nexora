@@ -106,6 +106,13 @@ const en = {
     contextLabel: 'context',
     tokensLabel: 'tokens',
     untitled: 'New conversation',
+    attach: 'Attach files',
+    attachmentRemove: 'Remove attachment',
+    attachmentDownload: 'Download attachment',
+    attachmentPending: 'Processing…',
+    attachmentStored: 'Stored',
+    attachmentFailed: 'Failed',
+    attachmentUploadFailed: 'Could not upload the file.',
   },
   projects: {
     title: 'Projects',

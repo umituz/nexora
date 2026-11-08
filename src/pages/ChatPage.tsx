@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { apiFetch } from '@umituz/web-hono/client'
 import { usePageTitle } from '@umituz/web-dashboard'
-import { NativeSelect } from '@umituz/web-design-system'
+import { Button, NativeSelect } from '@umituz/web-design-system'
 import type { NativeSelectOption } from '@umituz/web-design-system'
-import type { ConversationRow, MessageRow, StreamHandle } from '@/data/chatTypes'
+import { Paperclip } from 'lucide-react'
+import type { AttachmentRow, ConversationRow, MessageRow, StreamHandle } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
 import { streamChat } from '@/lib/sse'
+import { AttachmentChips } from '@/components/chat/AttachmentChips'
 import { Composer } from '@/components/chat/Composer'
 import { ConversationList } from '@/components/chat/ConversationList'
 import { MessageBubble, type ChatMessageView } from '@/components/chat/MessageBubble'
@@ -35,6 +37,8 @@ export default function ChatPage(): ReactNode {
   const projects = useCollection('projects')
 
   const [messages, setMessages] = useState<ChatMessageView[]>([])
+  const [attachments, setAttachments] = useState<AttachmentRow[]>([])
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -43,6 +47,7 @@ export default function ChatPage(): ReactNode {
   const handleRef = useRef<StreamHandle | null>(null)
   const streamingConversationRef = useRef<string | null>(null)
   const threadRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   usePageTitle(t('nav.items.chat'))
 
@@ -55,18 +60,27 @@ export default function ChatPage(): ReactNode {
   useEffect(() => {
     if (!conversationId) {
       setMessages([])
+      setAttachments([])
       return
     }
     setEditing(null)
     if (streamingConversationRef.current === conversationId) return
     let alive = true
     setLoading(true)
-    apiFetch<MessageRow[]>(`/api/conversations/${conversationId}/messages`)
-      .then((rows) => {
-        if (alive) setMessages(rows.map(toView))
+    Promise.all([
+      apiFetch<MessageRow[]>(`/api/conversations/${conversationId}/messages`),
+      apiFetch<AttachmentRow[]>(`/api/conversations/${conversationId}/attachments`),
+    ])
+      .then(([messageRows, attachmentRows]) => {
+        if (!alive) return
+        setMessages(messageRows.map(toView))
+        setAttachments(attachmentRows)
       })
       .catch(() => {
-        if (alive) setMessages([])
+        if (alive) {
+          setMessages([])
+          setAttachments([])
+        }
       })
       .finally(() => {
         if (alive) setLoading(false)
@@ -239,6 +253,43 @@ export default function ChatPage(): ReactNode {
     [active],
   )
 
+  const uploadAttachment = useCallback(
+    async (file: File) => {
+      if (!active) return
+      setAttachmentError(null)
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch(`/api/conversations/${active.id}/attachments`, { method: 'POST', body: form })
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null
+        setAttachmentError(body?.error ?? t('chat.attachmentUploadFailed'))
+        return
+      }
+      const row = (await res.json()) as AttachmentRow
+      setAttachments((prev) => [...prev, row])
+    },
+    [active, t],
+  )
+
+  const onFilesPicked = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const files = event.target.files
+      event.target.value = ''
+      if (!files || files.length === 0) return
+      for (const file of Array.from(files)) await uploadAttachment(file)
+    },
+    [uploadAttachment],
+  )
+
+  const removeAttachment = useCallback(async (id: string) => {
+    try {
+      await apiFetch(`/api/attachments/${id}`, { method: 'DELETE' })
+      setAttachments((prev) => prev.filter((row) => row.id !== id))
+    } catch {
+      return
+    }
+  }, [])
+
   const lastAssistantComplete =
     messages.length > 0 && messages[messages.length - 1].role === 'assistant' && messages[messages.length - 1].status === 'complete'
 
@@ -306,12 +357,34 @@ export default function ChatPage(): ReactNode {
               </button>
             </div>
           )}
+          <AttachmentChips attachments={attachments} onRemove={(id) => void removeAttachment(id)} />
+          {attachmentError && <p className="mb-2 text-xs text-destructive">{attachmentError}</p>}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(event) => void onFilesPicked(event)}
+            aria-label={t('chat.attach')}
+          />
           <Composer
             value={input}
             onChange={setInput}
             onSend={() => void send()}
             onStop={stop}
             streaming={streaming}
+            startSlot={
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!active || streaming}
+                aria-label={t('chat.attach')}
+                title={t('chat.attach')}
+              >
+                <Paperclip size={16} aria-hidden="true" />
+              </Button>
+            }
           />
         </div>
       </div>

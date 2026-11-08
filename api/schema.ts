@@ -130,3 +130,28 @@ export const usageRecords = pgTable(
   },
   (t) => [index(tn('usage_user_idx')).on(t.userId, t.createdAt)],
 )
+
+export const ATTACHMENT_STATUSES = ['pending', 'processed', 'stored', 'failed'] as const
+export type AttachmentStatus = (typeof ATTACHMENT_STATUSES)[number]
+
+export const attachments = pgTable(
+  tn('attachments'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    conversationId: text('conversation_id')
+      .notNull()
+      .references(() => conversations.id),
+    name: text('name').notNull(),
+    mimeType: text('mime_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    status: text('status').$type<AttachmentStatus>().notNull().default('pending'),
+    textContent: text('text_content'),
+    contentB64: text('content_b64'),
+    errorMessage: text('error_message'),
+    ...trio(),
+  },
+  (t) => [index(tn('attachments_conversation_idx')).on(t.conversationId, t.createdAt)],
+)

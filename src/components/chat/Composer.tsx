@@ -13,9 +13,10 @@ interface ComposerProps {
   onStop: () => void
   streaming: boolean
   disabled?: boolean
+  startSlot?: ReactNode
 }
 
-export function Composer({ value, onChange, onSend, onStop, streaming, disabled }: ComposerProps): ReactNode {
+export function Composer({ value, onChange, onSend, onStop, streaming, disabled, startSlot }: ComposerProps): ReactNode {
   const t = useT()
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -39,6 +40,7 @@ export function Composer({ value, onChange, onSend, onStop, streaming, disabled 
   return (
     <div className="space-y-1.5">
       <div className="flex items-end gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm focus-within:border-input">
+        {startSlot}
         <Textarea
           ref={ref}
           value={value}
