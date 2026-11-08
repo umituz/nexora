@@ -25,6 +25,9 @@ function describeArgs(toolCall: PublicToolCall): string {
   if (toolCall.toolKey === 'generate_image' && typeof toolCall.args.prompt === 'string') {
     return toolCall.args.prompt
   }
+  if (toolCall.toolKey === 'web_search' && typeof toolCall.args.query === 'string') {
+    return toolCall.args.query
+  }
   return JSON.stringify(toolCall.args)
 }
 
@@ -34,6 +37,13 @@ function describeResult(toolCall: PublicToolCall): string | null {
   if (toolCall.status === 'succeeded' && toolCall.result) {
     if (toolCall.toolKey === 'generate_image' && typeof toolCall.result.imageUrl === 'string') {
       return toolCall.result.imageUrl
+    }
+    if (toolCall.toolKey === 'web_search' && Array.isArray(toolCall.result.results)) {
+      const urls = toolCall.result.results
+        .slice(0, 3)
+        .map((row) => (typeof row?.url === 'string' ? row.url : ''))
+        .filter(Boolean)
+      return urls.length > 0 ? urls.join('\n') : null
     }
     return JSON.stringify(toolCall.result)
   }

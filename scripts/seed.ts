@@ -103,6 +103,25 @@ const SEED_TOOLS: SeedTool[] = [
     requiresApproval: true,
     sortOrder: 20,
   },
+  {
+    id: 'tool_web_search',
+    key: 'web_search',
+    name: 'Web search',
+    description:
+      'Searches the public web and returns ranked results with titles, URLs, and snippets. Use for current events or facts you are unsure about.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The search query, focused keywords work best.' },
+        maxResults: { type: 'number', description: 'How many results to return, 1 to 5.' },
+        topic: { type: 'string', enum: ['general', 'news'], description: 'Search general web pages or recent news.' },
+      },
+      required: ['query'],
+      additionalProperties: false,
+    },
+    requiresApproval: true,
+    sortOrder: 30,
+  },
 ]
 
 const SEED_MODELS: SeedModel[] = [

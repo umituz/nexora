@@ -5,6 +5,7 @@ export type Env = ApiEnv & {
   BETTER_AUTH_SECRET: string
   BETTER_AUTH_URL?: string
   GROQ_API_KEY?: string
+  TAVILY_API_KEY?: string
 }
 
 export type Db = ReturnType<typeof getDb>

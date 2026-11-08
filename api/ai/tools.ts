@@ -5,6 +5,7 @@ import type { Db, Env } from '../env'
 import { AiError } from './errors'
 import { generateArtifact } from './image-service'
 import { IMAGE_QUALITIES, IMAGE_SIZES } from './providers/images'
+import { SEARCH_MAX_RESULTS, searchWeb } from './search'
 
 export type ToolExecutionOutcome = { ok: true; result: Record<string, unknown> } | { ok: false; error: string }
 
@@ -19,9 +20,16 @@ const saveMemoryArgs = z.object({
   pinned: z.boolean().optional(),
 })
 
+const webSearchArgs = z.object({
+  query: z.string().min(1).max(400),
+  maxResults: z.number().int().min(1).max(SEARCH_MAX_RESULTS).optional(),
+  topic: z.enum(['general', 'news']).optional(),
+})
+
 const ARG_SCHEMAS: Readonly<Record<string, z.ZodType>> = {
   generate_image: generateImageArgs,
   save_memory: saveMemoryArgs,
+  web_search: webSearchArgs,
 }
 
 export function validateToolArgs(toolKey: string, args: Record<string, unknown>): { ok: true } | { ok: false; error: string } {
@@ -74,6 +82,25 @@ export async function executeToolCall(
         pinned: args.pinned ?? false,
       })
       return { ok: true, result: { memoryId: id, content: args.content, pinned: args.pinned ?? false } }
+    }
+
+    if (input.toolKey === 'web_search') {
+      const args = webSearchArgs.parse(input.args)
+      const response = await searchWeb(env, {
+        query: args.query,
+        maxResults: args.maxResults,
+        topic: args.topic,
+        includeAnswer: true,
+      })
+      return {
+        ok: true,
+        result: {
+          query: response.query,
+          answer: response.answer,
+          responseTime: response.responseTime,
+          results: response.results.map((row) => ({ title: row.title, url: row.url, snippet: row.content })),
+        },
+      }
     }
   } catch (err) {
     if (err instanceof AiError) return { ok: false, error: err.userMessage }

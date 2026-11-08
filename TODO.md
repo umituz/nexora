@@ -78,7 +78,7 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 
 ## Phase 6 — Research, knowledge, automation
 
-- [ ] Web search integration (capability module, not coupled to chat engine).
+- [x] Web search integration (capability module, not coupled to chat engine).
 - [ ] Research workflows with citations.
 - [ ] Document indexing, embeddings, retrieval (pgvector on Neon — verify extension support).
 - [ ] Task engine foundation: status tracking, retries, logs.

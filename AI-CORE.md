@@ -187,8 +187,9 @@ mid-stream failures. Provider response bodies are logged server-side only.
 
 - Tool registry (`nexora_tools`): seeded builtin tools with JSON-Schema
   parameters and a `requiresApproval` flag; read-only through `/api/tools`.
-  The two seeded tools map to implemented executors — `generate_image`
-  (artifact pipeline) and `save_memory` (memory engine, `source: 'agent'`).
+  The three seeded tools map to implemented executors — `generate_image`
+  (artifact pipeline), `save_memory` (memory engine, `source: 'agent'`), and
+  `web_search` (Tavily-backed capability module, below).
   No tool is seeded before its executor exists.
 - Agents (`nexora_agents`): per-user name, description, standing instructions,
   an optional bound model (must produce text) and tool bindings validated
@@ -226,10 +227,31 @@ mid-stream failures. Provider response bodies are logged server-side only.
   answers without the image); its success path is verified through the same
   shared core via the Studio stub E2E.
 
+## Web search (capability module)
+
+- `api/ai/search.ts` is a standalone capability — `searchWeb(env, {query,
+  maxResults?, topic?, includeAnswer?})` — with no dependency on the chat
+  engine, agents, or tools; any route may call it directly. The `web_search`
+  tool executor is one such caller, so search also flows through the
+  approval-gated loop above.
+- Provider: Tavily (`POST https://api.tavily.com/search`, Bearer auth,
+  `TAVILY_API_KEY`). Results are normalized to `{title, url, snippet}` with
+  malformed entries dropped, `maxResults` clamped server-side to 1–5.
+  Upstream statuses reuse the shared `AiError` mapping (401 → `invalid_key`,
+  429 → `rate_limited`, …); network faults map to `network`.
+- Untrusted-content stance (live-verified 2026-11-08): the system prompt
+  declares tool/search/attachment content to be data, never instructions.
+  Live-verified failure path: with no `TAVILY_API_KEY` the approved call
+  marks `failed` with "The provider is not configured with an API key." and
+  the continuation answers honestly (reports the failure, labels unverified
+  recall as low-confidence). **Live search results are not verified in this
+  workspace** — set `TAVILY_API_KEY` to activate them.
+
 ## What stays out
 
 - No auto-executing tools yet: every seeded tool is `requiresApproval` and the
   runtime pauses each call for an explicit approve/reject. A no-approval fast
   path would run inside the same executor and history pipeline when needed.
-- No embeddings/RAG (Phase 6; pgvector availability on Neon to be verified then).
+- No embeddings/RAG yet (Phase 6; pgvector verified on Neon 2026-11-08 —
+  extension installs, KNN `<->` queries work).
 - Generated code is never executed server-side (future sandbox requirement documented in TODO).
