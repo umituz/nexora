@@ -1,11 +1,6 @@
-# Nexora AI Core — Project-Local Implementation
+# Nexora AI Core
 
-The AI layer is implemented entirely inside this project (`api/ai/` + chat UI in `src/`).
-It deliberately does **not** depend on `@umituz/web-ai`, `@umituz/web-ai-*` provider
-packages, or any future Umituz AI package (owner directive). The internal architecture
-is designed so mature modules can later be extracted into Umituz packages without a
-rewrite: explicit contracts, no UI coupling, no route coupling, provider specifics
-isolated in adapters, database access behind narrow repository functions.
+The AI layer is integrated with `@umituz/web-ai` for mature, provider-neutral algorithms (chunking, context budgeting, token estimation, system prompt assembly, cost calculations, task retry policies, and failover), while preserving Nexora-specific execution orchestration, database models, and chat UI. The internal architecture follows clean decoupling: explicit contracts, no UI coupling, no route coupling, provider specifics isolated in adapters, and database access behind narrow repository functions.
 
 ## Modules
 

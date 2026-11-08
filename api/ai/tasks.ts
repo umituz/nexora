@@ -1,5 +1,10 @@
 import { and, eq, sql } from 'drizzle-orm'
 import { uid } from '@umituz/web-hono'
+import {
+  canStartTask,
+  nextAttemptDelayMs,
+  planTaskFailure,
+} from '@umituz/web-ai'
 import { tasks, type TaskLogEntry, type TaskStatus } from '../schema'
 import type { Db, Env } from '../env'
 
@@ -21,16 +26,8 @@ export interface TaskRowLite {
   nextAttemptAt: string | null
 }
 
-export function nextAttemptDelayMs(attempt: number, baseMs: number): number {
-  const exponential = baseMs * 2 ** Math.max(attempt - 1, 0)
-  return Math.min(exponential, TASK_BACKOFF_CAP_MS)
-}
-
-export function canStart(row: Pick<TaskRowLite, 'status' | 'nextAttemptAt'>, now: Date): boolean {
-  if (row.status !== 'queued') return false
-  if (row.nextAttemptAt === null) return true
-  return now.getTime() >= Date.parse(row.nextAttemptAt)
-}
+export { nextAttemptDelayMs }
+export const canStart = canStartTask
 
 export function planFailure(
   row: Pick<TaskRowLite, 'attempts' | 'maxAttempts'>,
@@ -38,11 +35,11 @@ export function planFailure(
   backoffBaseMs: number,
   now: Date,
 ): { status: 'queued' | 'failed'; nextAttemptAt: string | null; log: TaskLogEntry } {
-  const willRetry = row.attempts < row.maxAttempts
+  const plan = planTaskFailure(row, message, backoffBaseMs, now)
   return {
-    status: willRetry ? 'queued' : 'failed',
-    nextAttemptAt: willRetry ? new Date(now.getTime() + nextAttemptDelayMs(row.attempts, backoffBaseMs)).toISOString() : null,
-    log: { at: now.toISOString(), level: 'error', message: willRetry ? `${message} (retry scheduled)` : message },
+    status: plan.status,
+    nextAttemptAt: plan.nextAttemptAt,
+    log: { at: plan.log.at, level: plan.log.level === 'info' ? 'info' : 'error', message: plan.log.message },
   }
 }
 
