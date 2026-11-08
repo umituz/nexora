@@ -29,6 +29,7 @@ api/ai/
 ├── knowledge.ts        # document/chunk repository: index, pgvector KNN search, list/delete
 ├── search.ts           # web search capability module (Tavily), decoupled from chat
 ├── tools.ts            # builtin tool arg schemas + executors (approval-gated loop)
+├── research.ts         # research runs: search + cited synthesis, task-driven
 ├── tasks.ts            # task engine: queue, claim, retry/backoff policy, logs, kicks
 ├── task-handlers.ts    # builtin task consumers (index_document)
 ├── usage.ts            # cost computation from registry pricing; usage record construction
@@ -315,10 +316,11 @@ mid-stream failures. Provider response bodies are logged server-side only.
   409), `POST /:id/retry` (failed **or** cancelled — resets attempts/error
   and kicks immediately; a cancelled task's document would otherwise be
   stranded in `indexing`).
-- First consumer: `index_document` (create-pending → chunk → embed →
-  ready, or `markDocumentFailed` on every failed attempt). Tasks are audit
-  history — deleting a document does not delete its task rows (same stance
-  as usage records).
+- Consumers: `index_document` (create-pending → chunk → embed → ready, or
+  `markDocumentFailed` on every failed attempt; 3 attempts / 2 s base) and
+  `research` (below; 2 attempts / 4 s base — synthesis spends tokens, so it
+  retries once). Tasks are audit history — deleting a document or research
+  run does not delete its task rows (same stance as usage records).
 - Verification (2026-11-08, live against the stub embeddings provider):
   async happy path (202 → succeeded attempt 1 → document ready → KNN
   correct), retry cycle (provider down: attempts 1→2→3 with poll-driven
@@ -327,6 +329,40 @@ mid-stream failures. Provider response bodies are logged server-side only.
   mid-backoff (queued → cancelled → retry-from-cancelled → succeeded), and
   the no-key degradation path above. UI polling and the status chip
   (Indexing → Ready) verified in the browser.
+
+## Research workflows with citations (`api/ai/research.ts`)
+
+- A research run is an async task: `POST /api/research {query}` creates a
+  `nexora_research_runs` row (`running`) plus a `research` task and returns
+  202 with the `taskId`; the Research page polls the task like the
+  Knowledge page does.
+- Pipeline (`executeResearch`): `searchWeb` (top 5, general topic) →
+  normalize/dedup to `{title, url, snippet}` (snippets capped at 1000
+  chars) → synthesize with the workspace default chat model (streaming
+  required, ≤2048 output tokens, temperature 0.2) → run flips to `ready`
+  with report + sources + model id; synthesis usage is recorded through
+  the standard cost pipeline (no conversation binding). `TAVILY_BASE_URL`
+  optionally overrides the Tavily endpoint (self-hosted proxies).
+- Citations: the synthesis prompt (pure, unit-tested builder) forces plain
+  ASCII `[n]` markers tied to the stored source list, forbids citing
+  numbers that were not provided, forbids fabrication, requires an
+  explicit "not covered by the sources" statement for gaps, and declares
+  source content untrusted data (instructions inside it are never
+  followed). The UI renders the brief as plain text plus the numbered
+  source links.
+- Degradation: missing `TAVILY_API_KEY` → run accepted, task fails
+  terminally with "The provider is not configured with an API key." and
+  the run shows `failed` with that message (live-verified).
+- Verification tier (2026-11-08): prompt builder, source normalization,
+  stream accumulation, and the base-URL override are unit-tested. The full
+  pipeline is live-verified with **live Groq synthesis against a stub
+  Tavily server** (runs succeeded on attempt 1; reports cited the stub's
+  facts with correctly mapped [1]/[2]/[3] markers and closing source list;
+  retry path failed 2/2 after the stub was killed). The Research page
+  renders run cards with status chips and stored sources (browser-
+  verified); the start-from-UI interaction shares the Knowledge page's
+  browser-verified poll pattern. **Live Tavily search is not verified in
+  this workspace** — set `TAVILY_API_KEY` to activate it.
 
 ## What stays out
 

@@ -108,4 +108,17 @@ describe('searchWeb', () => {
     expect(response.answer).toBeNull()
     expect(response.query).toBe('q')
   })
+
+  it('honors a configured base URL override', async () => {
+    let capturedUrl = ''
+    await searchWeb(
+      { TAVILY_API_KEY: 'tvly-test', TAVILY_BASE_URL: 'http://127.0.0.1:9303/' },
+      { query: 'q' },
+      async (url) => {
+        capturedUrl = url
+        return jsonResponse(200, { results: [] })
+      },
+    )
+    expect(capturedUrl).toBe('http://127.0.0.1:9303/search')
+  })
 })

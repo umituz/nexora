@@ -128,6 +128,17 @@ export interface KnowledgeHitRow {
   distance: number
 }
 
+export interface ResearchRunRow {
+  id: string
+  query: string
+  status: 'running' | 'ready' | 'failed'
+  report: string | null
+  sources: { title: string; url: string; snippet: string }[]
+  modelId: string | null
+  errorMessage: string | null
+  createdAt: string
+}
+
 export interface AgentRow {
   id: string
   userId: string

@@ -5,10 +5,11 @@ import type { Db, Env } from '../env'
 
 export const TASK_BACKOFF_CAP_MS = 30_000
 
-export type TaskKind = 'index_document'
+export type TaskKind = 'index_document' | 'research'
 
 export const TASK_POLICIES: Readonly<Record<TaskKind, { maxAttempts: number; backoffBaseMs: number }>> = {
   index_document: { maxAttempts: 3, backoffBaseMs: 2000 },
+  research: { maxAttempts: 2, backoffBaseMs: 4000 },
 }
 
 export interface TaskRowLite {

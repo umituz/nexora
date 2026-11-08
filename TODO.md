@@ -76,10 +76,10 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Agent CRUD, instructions, model + tool binding.
 - [x] Tool registry with JSON schemas, permission validation, approval workflow, execution history.
 
-## Phase 6 — Research, knowledge, automation
+## Phase 6 — Research, knowledge, automation ✅
 
 - [x] Web search integration (capability module, not coupled to chat engine).
-- [ ] Research workflows with citations.
+- [x] Research workflows with citations.
 - [x] Document indexing, embeddings, retrieval (pgvector on Neon — extension verified live 2026-11-08).
 - [x] Task engine foundation: status tracking, retries, logs.
 

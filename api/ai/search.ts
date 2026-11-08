@@ -42,7 +42,7 @@ interface TavilyResponse {
 export const SEARCH_MAX_RESULTS = 5
 
 export function searchWeb(
-  env: { TAVILY_API_KEY?: string },
+  env: { TAVILY_API_KEY?: string; TAVILY_BASE_URL?: string },
   input: WebSearchInput,
   fetchImpl: FetchLike = fetch,
 ): Promise<WebSearchResponse> {
@@ -51,11 +51,12 @@ export function searchWeb(
 
   const maxResults = Math.min(Math.max(Math.trunc(input.maxResults ?? SEARCH_MAX_RESULTS), 1), SEARCH_MAX_RESULTS)
   const topic = input.topic ?? 'general'
+  const baseUrl = (env.TAVILY_BASE_URL ?? 'https://api.tavily.com').replace(/\/$/, '')
 
   const body: Record<string, unknown> = { query: input.query, max_results: maxResults, topic }
   if (input.includeAnswer) body.include_answer = true
 
-  return fetchImpl('https://api.tavily.com/search', {
+  return fetchImpl(`${baseUrl}/search`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

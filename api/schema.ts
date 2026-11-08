@@ -343,3 +343,30 @@ export const tasks = pgTable(
   },
   (t) => [index(tn('tasks_user_idx')).on(t.userId, t.createdAt)],
 )
+
+export const RESEARCH_STATUSES = ['running', 'ready', 'failed'] as const
+export type ResearchStatus = (typeof RESEARCH_STATUSES)[number]
+
+export interface ResearchSource {
+  title: string
+  url: string
+  snippet: string
+}
+
+export const researchRuns = pgTable(
+  tn('research_runs'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    query: text('query').notNull(),
+    status: text('status').$type<ResearchStatus>().notNull().default('running'),
+    report: text('report'),
+    sources: jsonb('sources').$type<ResearchSource[]>().notNull().default([]),
+    modelId: text('model_id').references(() => models.id),
+    errorMessage: text('error_message'),
+    ...trio(),
+  },
+  (t) => [index(tn('research_runs_user_idx')).on(t.userId, t.createdAt)],
+)

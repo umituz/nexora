@@ -71,5 +71,6 @@ describe('TASK_POLICIES', () => {
       expect(policy.backoffBaseMs).toBeGreaterThan(0)
     }
     expect(TASK_POLICIES.index_document.maxAttempts).toBe(3)
+    expect(TASK_POLICIES.research.maxAttempts).toBe(2)
   })
 })
