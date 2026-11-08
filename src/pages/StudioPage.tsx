@@ -4,7 +4,7 @@ import { usePageTitle } from '@umituz/web-dashboard'
 import { ApiClientError, apiFetch } from '@umituz/web-hono/client'
 import { Button, NativeSelect, Textarea } from '@umituz/web-design-system'
 import type { NativeSelectOption } from '@umituz/web-design-system'
-import { Copy, Download, Loader2, Sparkles, Trash2 } from 'lucide-react'
+import { Copy, Download, Loader2, Sparkles, Trash2, Volume2 } from 'lucide-react'
 import type { PublicModel } from '@shared/ai/contracts'
 import type { ArtifactRow } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
@@ -12,6 +12,7 @@ import { useT } from '@/i18n'
 
 const SIZES = ['1024x1024', '1536x1024', '1024x1536'] as const
 const QUALITIES = ['auto', 'low', 'medium', 'high', 'xhigh', 'max'] as const
+const VOICES = ['tara', 'leah', 'jess', 'julian', 'annie', 'steve', 'zac', 'bella'] as const
 
 const SIZE_LABELS: Record<(typeof SIZES)[number], string> = {
   '1024x1024': 'studio.sizeSquare',
@@ -26,12 +27,54 @@ export default function StudioPage(): ReactNode {
   usePageTitle(t('nav.items.studio'))
 
   const imageModels = models.filter((model) => model.outputTypes.includes('image'))
+  const speechModels = models.filter((model) => model.outputTypes.includes('audio'))
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
   const [size, setSize] = useState<string>('1024x1024')
   const [quality, setQuality] = useState<string>('auto')
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [speechText, setSpeechText] = useState('')
+  const [speechModelId, setSpeechModelId] = useState<string | null>(null)
+  const [voice, setVoice] = useState<string>('tara')
+  const [speaking, setSpeaking] = useState(false)
+  const [speechError, setSpeechError] = useState<string | null>(null)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    setSpeechModelId((current) => current ?? speechModels[0]?.id ?? null)
+  }, [speechModels])
+
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl)
+    }
+  }, [audioUrl])
+
+  const speak = useCallback(async () => {
+    const trimmed = speechText.trim()
+    if (trimmed.length === 0 || speaking) return
+    setSpeaking(true)
+    setSpeechError(null)
+    try {
+      const response = await fetch('/api/audio/speech', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: trimmed, voice, ...(speechModelId ? { modelId: speechModelId } : {}) }),
+      })
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null
+        throw new ApiClientError(body?.error ?? String(response.status), response.status, body)
+      }
+      if (audioUrl) URL.revokeObjectURL(audioUrl)
+      setAudioUrl(URL.createObjectURL(await response.blob()))
+    } catch (err) {
+      setSpeechError(err instanceof ApiClientError ? err.message : t('studio.speechFailed'))
+    } finally {
+      setSpeaking(false)
+    }
+  }, [audioUrl, speechModelId, speechText, speaking, t, voice])
 
   useEffect(() => {
     setSelectedModelId((current) => current ?? imageModels[0]?.id ?? null)
@@ -217,6 +260,52 @@ export default function StudioPage(): ReactNode {
           <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
             {t('studio.empty')}
           </p>
+        )}
+
+        {speechModels.length > 0 && (
+          <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Volume2 size={14} aria-hidden="true" />
+              {t('studio.speechTitle')}
+            </h2>
+            <Textarea
+              value={speechText}
+              onChange={(event) => setSpeechText(event.target.value)}
+              placeholder={t('studio.speechPlaceholder')}
+              rows={3}
+              maxLength={4000}
+              disabled={speaking}
+              aria-label={t('studio.speechText')}
+            />
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex min-w-44 flex-col gap-1">
+                <label className="text-xs font-medium text-muted-foreground">{t('studio.model')}</label>
+                <NativeSelect
+                  options={speechModels.map((model: PublicModel) => ({ value: model.id, label: model.displayName }))}
+                  value={speechModelId ?? ''}
+                  onChange={(event) => setSpeechModelId(event.target.value || null)}
+                  disabled={speaking}
+                  aria-label={t('studio.model')}
+                />
+              </div>
+              <div className="flex min-w-32 flex-col gap-1">
+                <label className="text-xs font-medium text-muted-foreground">{t('studio.voice')}</label>
+                <NativeSelect
+                  options={VOICES.map((value) => ({ value, label: value }))}
+                  value={voice}
+                  onChange={(event) => setVoice(event.target.value)}
+                  disabled={speaking}
+                  aria-label={t('studio.voice')}
+                />
+              </div>
+              <Button onClick={() => void speak()} disabled={speaking || speechText.trim().length === 0}>
+                {speaking ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Volume2 size={14} aria-hidden="true" />}
+                {speaking ? t('studio.speaking') : t('studio.speak')}
+              </Button>
+            </div>
+            {speechError ? <p className="text-sm text-destructive">{speechError}</p> : null}
+            {audioUrl ? <audio controls src={audioUrl} className="w-full" /> : null}
+          </div>
         )}
       </div>
     </div>

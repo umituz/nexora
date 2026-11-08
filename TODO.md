@@ -95,7 +95,8 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
       unit-tested per adapter.
 - [x] Audio input/transcription (whisper-large-v3-turbo on Groq; live-verified
       end to end, transcript feeds chat context).
-- [ ] TTS (provider-capability driven).
+- [x] TTS (orpheus on Groq, Studio speech panel; live synthesis pending provider
+      terms acceptance, request path live-verified).
 - [ ] Video — capability-gated; document registry/models with no video input support.
 
 ## Phase 9 — Infrastructure evolution

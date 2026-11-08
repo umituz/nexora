@@ -352,6 +352,22 @@ const SEED_MODELS: SeedModel[] = [
     isDefault: false,
     sortOrder: 130,
   },
+  {
+    id: 'model_orpheus_v1_english',
+    providerId: 'provider_groq',
+    externalId: 'canopylabs/orpheus-v1-english',
+    displayName: 'Orpheus English TTS',
+    family: 'orpheus',
+    description: 'Text-to-speech synthesis for English text. Requires terms acceptance in the Groq console; billed per character, not mapped to the token ledger.',
+    capabilities: { streaming: false, tools: false, structured: false, reasoning: false, vision: false, embeddings: false },
+    inputTypes: ['text'],
+    outputTypes: ['audio'],
+    contextWindow: 0,
+    maxOutputTokens: 0,
+    pricing: { inputPerMTok: 0, outputPerMTok: 0, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 140,
+  },
 ]
 
 async function main() {

@@ -141,6 +141,24 @@ first-class in the contract. Usage arrives in a terminal chunk via
   the default model quoted the transcript verbatim. The invalid-media and
   blocked-model error paths were live-verified as degradation cases.
 
+## Speech synthesis (TTS output)
+
+- `POST /api/audio/speech` (session required, zod-validated: text 1–4000 non-blank,
+  voice from a fixed set, optional modelId) resolves the registry's first
+  `outputTypes: ['audio']` model behind a keyed provider (`canopylabs/orpheus-v1-english`
+  on Groq is seeded), then the speech adapter posts
+  `{model, input, voice, response_format: 'wav'}` to `{base}/audio/speech` and
+  streams the binary WAV back to the client (`audio/wav`, no-store). Output is
+  ephemeral by design — the Studio plays it from a blob URL; nothing is persisted.
+- Orpheus is billed per character by the provider, which does not map to the
+  token-based usage ledger; speech writes no usage record (documented limitation).
+- Verified live in this workspace: model resolution, the request path through the
+  adapter, validation (blank text, unknown voice → 400; no session → 401), and
+  error surfacing — the provider currently rejects orpheus until the org admin
+  accepts its terms (console.groq.com/playground?model=canopylabs/orpheus-v1-english),
+  and that actionable message reaches the client verbatim. **Live synthesis is not
+  verified** until the terms are accepted; the adapter wire shape is unit-tested.
+
 ## Image generation
 
 - `POST /api/artifacts` generates one image from a prompt: `resolveImageModel`

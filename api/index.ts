@@ -12,6 +12,7 @@ import { documentsRouter } from './routes/documents'
 import { tasksRouter } from './routes/tasks'
 import { researchRouter } from './routes/research'
 import { codeArtifactsRouter } from './routes/code-artifacts'
+import { audioRouter } from './routes/audio'
 import { chatRouter } from './routes/chat'
 import { usageRouter } from './routes/usage'
 import { authRouter } from './auth'
@@ -34,6 +35,7 @@ export default createApi<Env>({
     ['/tasks', tasksRouter],
     ['/research', researchRouter],
     ['/code-artifacts', codeArtifactsRouter],
+    ['/', audioRouter],
     ['/', chatRouter],
     ['/', attachmentsRouter],
     ['/usage', usageRouter],

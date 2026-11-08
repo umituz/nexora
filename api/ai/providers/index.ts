@@ -4,11 +4,13 @@ import { createOpenAiAudioTranscriptionAdapter, type AudioTranscriptionAdapter }
 import { createOpenAiEmbeddingsAdapter, type EmbeddingsAdapter } from './embeddings'
 import { createOpenAiImageAdapter, type ImageAdapter } from './images'
 import { createOpenAiCompatibleAdapter, type ChatAdapter } from './openai-compatible'
+import { createOpenAiSpeechAdapter, type SpeechAdapter } from './speech'
 
 export type { ChatAdapter, ProviderEvent, AdapterRequest } from './openai-compatible'
 export type { ImageAdapter, ImageRequest, ImageResult } from './images'
 export type { EmbeddingsAdapter, EmbeddingsRequest, EmbeddingsResult } from './embeddings'
 export type { AudioTranscriptionAdapter, AudioTranscriptionRequest, AudioTranscriptionResult } from './audio'
+export type { SpeechAdapter, SpeechRequest, SpeechResult, SpeechVoice } from './speech'
 
 export interface ProviderBinding {
   adapter: string
@@ -88,5 +90,17 @@ export function audioTranscriptionAdapterFor(env: object, provider: ProviderBind
     baseUrl: provider.baseUrl.replace(/\/$/, ''),
     apiKey,
     timeoutMs: TIMEOUT_MS,
+  })
+}
+
+export function speechAdapterFor(env: object, provider: ProviderBinding): SpeechAdapter {
+  const apiKey = resolveProviderKey(env, provider.apiKeyEnv)
+  if (provider.adapter !== 'openai-compatible') {
+    throw new AiError('model_unavailable', `Adapter kind does not support speech synthesis: ${provider.adapter}`)
+  }
+  return createOpenAiSpeechAdapter({
+    baseUrl: provider.baseUrl.replace(/\/$/, ''),
+    apiKey,
+    timeoutMs: IMAGE_TIMEOUT_MS,
   })
 }

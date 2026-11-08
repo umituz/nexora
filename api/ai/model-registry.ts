@@ -155,6 +155,27 @@ export async function findTranscriptionModel(db: Db, env: object): Promise<Resol
   return { model: toModelRow(row.model), provider: toProviderRow(row.provider) }
 }
 
+export async function resolveSpeechModel(db: Db, env: object, modelId: string | null): Promise<ResolvedModel> {
+  if (modelId) {
+    const resolved = await resolveModel(db, env, modelId)
+    if (!resolved.model.outputTypes.includes('audio')) {
+      throw ApiError.badRequest('Model does not generate speech')
+    }
+    return resolved
+  }
+
+  const rows = await db
+    .select({ model: models, provider: providers })
+    .from(models)
+    .innerJoin(providers, eq(models.providerId, providers.id))
+    .where(and(isNull(models.deletedAt), isNull(providers.deletedAt), eq(models.active, true)))
+    .orderBy(asc(models.sortOrder), asc(models.displayName))
+
+  const row = rows.find((candidate) => candidate.model.outputTypes.includes('audio') && providerAvailable(env, candidate.provider.apiKeyEnv))
+  if (!row) throw new ApiError(503, 'No speech model is configured for this workspace')
+  return { model: toModelRow(row.model), provider: toProviderRow(row.provider) }
+}
+
 function toModelRow(row: typeof models.$inferSelect): ModelRow {
   return {
     id: row.id,

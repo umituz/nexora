@@ -266,6 +266,13 @@ const en = {
     delete: 'Delete image',
     variation: 'Generate variation',
     version: 'v{{version}}',
+    speechTitle: 'Speech synthesis',
+    speechText: 'Text to speak',
+    speechPlaceholder: 'Type the text you want spoken aloud…',
+    voice: 'Voice',
+    speak: 'Speak',
+    speaking: 'Synthesizing…',
+    speechFailed: 'Speech synthesis failed. Try again.',
   },
   usage: {
     title: 'Usage',
