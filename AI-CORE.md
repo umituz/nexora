@@ -86,6 +86,11 @@ first-class in the contract. Usage arrives in a terminal chunk via
   `message_start`/`message_delta` events, and sampling params (`temperature`,
   `top_p`) are omitted because current Claude models reject them with a 400 — the
   registry's temperature/topP settings apply to OpenAI-compatible providers only.
+- Error mapping reads the provider's `error.type`/`error.code`, not just the HTTP
+  status: a 403 permission block (e.g. Groq's `model_permission_blocked_project`)
+  maps to `model_unavailable`, while 401/403 api-key rejections stay
+  `invalid_key`. `AiError.userMessage` surfaces the provider detail so the
+  client sees the actionable message (e.g. the console URL to enable the model).
 
 ## Image understanding (vision input)
 
@@ -106,9 +111,35 @@ first-class in the contract. Usage arrives in a terminal chunk via
 - Verified live in this workspace: upload of an `image/png` attachment (status
   `stored`) and the capability gate (400 on a non-vision model with an image
   attached). Live image understanding on `qwen/qwen3.8-27b` (vision model seeded
-  from the live Groq catalog) is **not** verified: the workspace's `GROQ_API_KEY`
-  was rejected with 403 during this phase. Set a valid `GROQ_API_KEY` to activate
-  it; the adapter wire shapes above are covered by unit tests in the meantime.
+  from the live Groq catalog) is **not** verified: the workspace's Groq project
+  blocks that model (`model_permission_blocked_project` — a project admin must
+  enable it at console.groq.com/settings/project/limits). The blocked-model path
+  surfaces as a `model_unavailable` SSE error carrying the provider's message;
+  the adapter wire shapes above are covered by unit tests in the meantime.
+
+## Audio transcription (audio input)
+
+- Audio attachments (`audio/*`, ≤2 MB) are transcribed synchronously during
+  upload: `findTranscriptionModel` picks the first registry model whose
+  `inputTypes` include `audio` behind a provider with a configured key
+  (`whisper-large-v3-turbo` on Groq is seeded), and the audio adapter posts
+  multipart to `{base}/audio/transcriptions` (`file`, `model`,
+  `response_format: json`) reading `{text}`.
+- The transcript is capped by the shared per-file text limit and stored in
+  `attachments.text_content` with status `processed` — so it flows into the chat
+  context through the same `loadAttachmentTexts` path as extracted file text;
+  no chat-side changes are needed. Whisper is billed per audio second by the
+  provider, which does not map to the token-based usage ledger; transcription
+  writes no usage record (documented limitation).
+- Degradation is silent-but-visible: no transcription model configured → the
+  attachment is simply `stored`; provider failure (bad key, invalid media,
+  blocked model) → still `stored`, with `errorMessage` carrying the provider
+  detail and the upload succeeding.
+- Live-verified end to end (2026-11-08): a real speech WAV ("Nexora audio
+  transcription test. The color of the sunset is amber.") uploaded to a
+  conversation came back `processed` in ~3 s, and a follow-up chat answer on
+  the default model quoted the transcript verbatim. The invalid-media and
+  blocked-model error paths were live-verified as degradation cases.
 
 ## Image generation
 

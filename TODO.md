@@ -93,7 +93,8 @@ Ports: Vite dev **5190** (strictPort) · wrangler dev **8792**.
 - [x] Image understanding (vision input) — provider-capability driven; attachment
       images ride on `AdapterRequest.images`, capability gate 400, wire shapes
       unit-tested per adapter.
-- [ ] Audio input/transcription (whisper-large-v3-turbo on Groq).
+- [x] Audio input/transcription (whisper-large-v3-turbo on Groq; live-verified
+      end to end, transcript feeds chat context).
 - [ ] TTS (provider-capability driven).
 - [ ] Video — capability-gated; document registry/models with no video input support.
 

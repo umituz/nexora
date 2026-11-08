@@ -135,7 +135,7 @@ export function createOpenAiCompatibleAdapter(config: AdapterConfig): ChatAdapte
 
       if (!response.ok || !response.body) {
         const detail = await extractErrorDetail(response)
-        throw errorFromStatus(response.status, detail)
+        throw errorFromStatus(response.status, detail?.message, detail)
       }
 
       yield* parseSseStream(response.body)
@@ -143,10 +143,16 @@ export function createOpenAiCompatibleAdapter(config: AdapterConfig): ChatAdapte
   }
 }
 
-async function extractErrorDetail(response: Response): Promise<string | undefined> {
+interface WireError {
+  message?: string
+  type?: string
+  code?: string
+}
+
+async function extractErrorDetail(response: Response): Promise<WireError | undefined> {
   try {
-    const body = (await response.json()) as { error?: { message?: string } }
-    return body.error?.message
+    const body = (await response.json()) as { error?: WireError }
+    return body.error
   } catch {
     return undefined
   }

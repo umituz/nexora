@@ -37,7 +37,7 @@ export class AiError extends Error {
   }
 
   get userMessage(): string {
-    return CODE_MESSAGES[this.code]
+    return this.message
   }
 }
 
@@ -45,9 +45,20 @@ export function aiErrorMessage(code: AiErrorCode): string {
   return CODE_MESSAGES[code]
 }
 
-export function errorFromStatus(status: number, detail?: string): AiError {
-  const code = STATUS_TO_CODE[status] ?? 'upstream_error'
+export interface ProviderErrorShape {
+  type?: string
+  code?: string
+}
+
+export function errorFromStatus(status: number, detail?: string, provider?: ProviderErrorShape): AiError {
+  let code = STATUS_TO_CODE[status] ?? 'upstream_error'
+  if (status === 403 && provider && !isApiKeyRejection(provider)) code = 'model_unavailable'
   return new AiError(code, detail ? `${CODE_MESSAGES[code]} (${detail})` : undefined)
+}
+
+function isApiKeyRejection(provider: ProviderErrorShape): boolean {
+  if (provider.code === 'invalid_api_key') return true
+  return provider.type === undefined
 }
 
 export function errorFromUnknown(err: unknown): AiError {

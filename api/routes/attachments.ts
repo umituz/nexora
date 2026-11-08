@@ -1,8 +1,10 @@
 import { Hono } from 'hono'
 import { and, asc, eq, isNull } from 'drizzle-orm'
-import { stampUpdate, uid } from '@umituz/web-hono'
+import { ApiError, stampUpdate, uid } from '@umituz/web-hono'
 import type { Env } from '../env'
 import { getDb } from '../db'
+import { AiError } from '../ai/errors'
+import { transcribeAudio } from '../ai/audio'
 import { attachments, conversations } from '../schema'
 import { requireUser } from '../session'
 import { capText, extractText, isTextLike, TEXT_EXTRACT_PER_FILE_LIMIT } from '../text-extract'
@@ -51,7 +53,19 @@ attachmentsRouter.post('/conversations/:id/attachments', async (c) => {
   const name = file.name || 'attachment'
   const mimeType = file.type || 'application/octet-stream'
   const textLike = isTextLike(mimeType, name)
-  const textContent = textLike ? capText(extractText(bytes), TEXT_EXTRACT_PER_FILE_LIMIT) : null
+  const audioLike = !textLike && mimeType.startsWith('audio/')
+
+  let textContent: string | null = null
+  let transcriptionError: string | null = null
+  if (textLike) {
+    textContent = capText(extractText(bytes), TEXT_EXTRACT_PER_FILE_LIMIT)
+  } else if (audioLike) {
+    try {
+      textContent = await transcribeAudio(db, c.env, { audio: bytes, mimeType, name })
+    } catch (err) {
+      transcriptionError = err instanceof ApiError || err instanceof AiError ? err.message : 'Transcription failed'
+    }
+  }
 
   const [row] = await db
     .insert(attachments)
@@ -62,8 +76,9 @@ attachmentsRouter.post('/conversations/:id/attachments', async (c) => {
       name,
       mimeType,
       sizeBytes: file.size,
-      status: textLike ? 'processed' : 'stored',
+      status: textContent !== null ? 'processed' : 'stored',
       textContent,
+      errorMessage: transcriptionError,
       contentB64: toBase64(bytes),
     })
     .returning({

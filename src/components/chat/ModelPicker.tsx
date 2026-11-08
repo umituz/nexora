@@ -22,7 +22,7 @@ interface ModelPickerProps {
 export function ModelPicker({ models, value, onChange, disabled }: ModelPickerProps): ReactNode {
   const t = useT()
 
-  const chatModels = models.filter((model) => model.outputTypes.includes('text'))
+  const chatModels = models.filter((model) => model.outputTypes.includes('text') && model.capabilities.streaming)
   const options: NativeSelectOption[] = chatModels.map((model) => ({
     value: model.id,
     label: model.displayName,

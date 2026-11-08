@@ -17,6 +17,21 @@ describe('errorFromStatus', () => {
   it('appends provider detail to the user message', () => {
     expect(errorFromStatus(401, 'bad key').message).toContain('bad key')
   })
+
+  it('maps 403 permission blocks to model_unavailable with provider detail', () => {
+    const error = errorFromStatus(403, 'model blocked at project level', {
+      type: 'permissions_error',
+      code: 'model_permission_blocked_project',
+    })
+    expect(error.code).toBe('model_unavailable')
+    expect(error.userMessage).toContain('model blocked at project level')
+  })
+
+  it('keeps 403 as invalid_key for api key rejections and shapeless bodies', () => {
+    expect(errorFromStatus(403, 'bad key', { code: 'invalid_api_key' }).code).toBe('invalid_key')
+    expect(errorFromStatus(403).code).toBe('invalid_key')
+    expect(errorFromStatus(403, 'forbidden', {}).code).toBe('invalid_key')
+  })
 })
 
 describe('errorFromUnknown', () => {

@@ -142,6 +142,19 @@ export async function resolveEmbeddingModel(db: Db, env: object, modelId: string
   return { model: toModelRow(row.model), provider: toProviderRow(row.provider) }
 }
 
+export async function findTranscriptionModel(db: Db, env: object): Promise<ResolvedModel | null> {
+  const rows = await db
+    .select({ model: models, provider: providers })
+    .from(models)
+    .innerJoin(providers, eq(models.providerId, providers.id))
+    .where(and(isNull(models.deletedAt), isNull(providers.deletedAt), eq(models.active, true)))
+    .orderBy(asc(models.sortOrder), asc(models.displayName))
+
+  const row = rows.find((candidate) => candidate.model.inputTypes.includes('audio') && providerAvailable(env, candidate.provider.apiKeyEnv))
+  if (!row) return null
+  return { model: toModelRow(row.model), provider: toProviderRow(row.provider) }
+}
+
 function toModelRow(row: typeof models.$inferSelect): ModelRow {
   return {
     id: row.id,

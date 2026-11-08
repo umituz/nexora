@@ -1,5 +1,6 @@
 import { AiError } from '../errors'
 import { createAnthropicAdapter } from './anthropic'
+import { createOpenAiAudioTranscriptionAdapter, type AudioTranscriptionAdapter } from './audio'
 import { createOpenAiEmbeddingsAdapter, type EmbeddingsAdapter } from './embeddings'
 import { createOpenAiImageAdapter, type ImageAdapter } from './images'
 import { createOpenAiCompatibleAdapter, type ChatAdapter } from './openai-compatible'
@@ -7,6 +8,7 @@ import { createOpenAiCompatibleAdapter, type ChatAdapter } from './openai-compat
 export type { ChatAdapter, ProviderEvent, AdapterRequest } from './openai-compatible'
 export type { ImageAdapter, ImageRequest, ImageResult } from './images'
 export type { EmbeddingsAdapter, EmbeddingsRequest, EmbeddingsResult } from './embeddings'
+export type { AudioTranscriptionAdapter, AudioTranscriptionRequest, AudioTranscriptionResult } from './audio'
 
 export interface ProviderBinding {
   adapter: string
@@ -71,6 +73,18 @@ export function embeddingsAdapterFor(env: object, provider: ProviderBinding): Em
     throw new AiError('model_unavailable', `Adapter kind does not support embeddings: ${provider.adapter}`)
   }
   return createOpenAiEmbeddingsAdapter({
+    baseUrl: provider.baseUrl.replace(/\/$/, ''),
+    apiKey,
+    timeoutMs: TIMEOUT_MS,
+  })
+}
+
+export function audioTranscriptionAdapterFor(env: object, provider: ProviderBinding): AudioTranscriptionAdapter {
+  const apiKey = resolveProviderKey(env, provider.apiKeyEnv)
+  if (provider.adapter !== 'openai-compatible') {
+    throw new AiError('model_unavailable', `Adapter kind does not support audio transcription: ${provider.adapter}`)
+  }
+  return createOpenAiAudioTranscriptionAdapter({
     baseUrl: provider.baseUrl.replace(/\/$/, ''),
     apiKey,
     timeoutMs: TIMEOUT_MS,

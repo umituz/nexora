@@ -336,6 +336,22 @@ const SEED_MODELS: SeedModel[] = [
     isDefault: false,
     sortOrder: 120,
   },
+  {
+    id: 'model_whisper_large_v3_turbo',
+    providerId: 'provider_groq',
+    externalId: 'whisper-large-v3-turbo',
+    displayName: 'Whisper Large v3 Turbo',
+    family: 'whisper',
+    description: 'Speech-to-text transcription for audio attachments. Audio is billed per second by the provider; pricing is not mapped to the token ledger.',
+    capabilities: { streaming: false, tools: false, structured: false, reasoning: false, vision: false, embeddings: false },
+    inputTypes: ['audio'],
+    outputTypes: ['text'],
+    contextWindow: 0,
+    maxOutputTokens: 0,
+    pricing: { inputPerMTok: 0, outputPerMTok: 0, currency: 'USD' },
+    isDefault: false,
+    sortOrder: 130,
+  },
 ]
 
 async function main() {
