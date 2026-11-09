@@ -2,9 +2,15 @@ import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
+import { quickSEOSetup } from '@umituz/web-seo/vite'
+import { SEO_ROUTES, SITE_URL } from './src/seo.ts'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    quickSEOSetup.saas(SITE_URL, { prerender: SEO_ROUTES, brand: 'Nexora AI' }),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

@@ -2,10 +2,12 @@ import { BrowserRouter } from 'react-router'
 import { SessionProvider } from '@umituz/web-auth/session'
 import { I18nProvider } from '@umituz/web-localization/react'
 import { ErrorBoundary } from '@umituz/web-design-system'
+import { RouteSEO } from '@umituz/web-seo'
 import '@umituz/web-auth/styles.css'
 import { authAdapter } from '@/auth/adapter'
 import { i18n } from '@/i18n'
 import { AppRoutes } from '@/routes/AppRoutes'
+import { SEO_ROUTES, SITE_URL } from '@/seo'
 
 function BootError({ onRetry }: { onRetry: () => void }) {
   return (
@@ -28,6 +30,7 @@ export default function App() {
       <ErrorBoundary fallback={(_, reset) => <BootError onRetry={reset} />}>
         <SessionProvider adapter={authAdapter}>
           <BrowserRouter>
+            <RouteSEO routes={SEO_ROUTES} siteUrl={SITE_URL} fallback={{ title: 'Nexora AI' }} />
             <AppRoutes />
           </BrowserRouter>
         </SessionProvider>
