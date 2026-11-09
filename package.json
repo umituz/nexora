@@ -27,7 +27,7 @@
     "@umituz/web-hono": "^1.19.3",
     "@umituz/web-landing": "^1.7.0",
     "@umituz/web-localization": "^1.6.1",
-    "@umituz/web-seo": "^2.5.0",
+    "@umituz/web-seo": "^2.6.0",
     "better-auth": "^1.7.12",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.13",
