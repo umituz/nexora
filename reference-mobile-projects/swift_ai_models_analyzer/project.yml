@@ -1,0 +1,62 @@
+name: AI-Models-Analyzer
+options:
+  bundleIdPrefix: com.example
+  developmentLanguage: en
+
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.example.aimodelsanalyzer
+    PRODUCT_NAME: AI-Models-Analyzer
+    SWIFT_VERSION: 5.0
+    MARKETING_VERSION: 1.0
+    CURRENT_PROJECT_VERSION: 1
+    SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+    TARGETED_DEVICE_FAMILY: '1'
+    SUPPORTS_MACCATALYST: NO
+    ALWAYS_SEARCH_USER_PATHS: NO
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+targets:
+  AI-Models-Analyzer:
+    type: application
+    platform: iOS
+    deploymentTarget: '17.0'
+    sources:
+      - path: AI-Models-Analyzer
+    info:
+      path: AI-Models-Analyzer/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: $(DEVELOPMENT_LANGUAGE)
+        CFBundleDisplayName: $(PRODUCT_NAME)
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleInfoDictionaryVersion: 6.0
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundlePackageType: $(PRODUCT_BUNDLE_PACKAGE_TYPE)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleIconName: AppIcon
+        ITSAppUsesNonExemptEncryption: false
+        LSRequiresIPhoneOS: true
+        UIApplicationSupportsIndirectInputEvents: true
+        UILaunchStoryboardName: LaunchScreen
+        UIRequiredDeviceCapabilities: [arm64]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+
+schemes:
+  AI-Models-Analyzer:
+    build:
+      targets:
+        AI-Models-Analyzer: all
+    run:
+      config: Debug
+    archive:
+      config: Release
