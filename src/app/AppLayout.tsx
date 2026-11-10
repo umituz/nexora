@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Navigate } from 'react-router'
 import { DashboardLayout } from '@umituz/web-dashboard'
 import type {
@@ -8,11 +8,11 @@ import type {
   SidebarGroup,
 } from '@umituz/web-dashboard'
 import { useSession } from '@umituz/web-auth/session'
+import { useDesignSystem } from '@umituz/web-design-system/providers'
 import { BRAND } from '@/brand'
 import { useT } from '@/i18n'
 import { useHydration } from '@/data/store'
 import { NAV_GROUPS, NAV_ITEMS } from './navigation'
-import { applyTheme, readStoredTheme, type Theme } from '@/utils/theme'
 
 function PageFallback() {
   return (
@@ -26,11 +26,7 @@ export default function AppLayout() {
   const { user: sessionUser, status, logout } = useSession()
   const hydration = useHydration()
   const t = useT()
-  const [theme, setTheme] = useState<Theme>(readStoredTheme)
-
-  useEffect(() => {
-    applyTheme(theme)
-  }, [theme])
+  const { mode, toggleMode } = useDesignSystem()
 
   const labels: DashboardLayoutLabels = useMemo(
     () => ({
@@ -79,7 +75,7 @@ export default function AppLayout() {
       brandName: BRAND.name,
       brandTagline: t('sidebar.tagline'),
       brand: (
-        <span className="nexora-brand-mark flex h-9 w-9 items-center justify-center rounded-[0.5rem] text-sm font-bold">
+        <span className="bg-gradient-to-br from-[#2563eb] to-[#7c3aed] text-white flex h-9 w-9 items-center justify-center rounded-[0.5rem] text-sm font-bold">
           {BRAND.mark}
         </span>
       ),
@@ -114,8 +110,8 @@ export default function AppLayout() {
         await logout()
       }}
       loginRoute="/login"
-      theme={theme}
-      onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      theme={mode}
+      onToggleTheme={toggleMode}
       contentFallback={<PageFallback />}
     />
   )

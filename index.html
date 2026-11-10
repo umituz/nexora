@@ -34,6 +34,15 @@
         letter-spacing: 0.08em;
       }
     </style>
+    <script>
+      try {
+        if (localStorage.getItem('nexora-theme') !== 'light') {
+          document.documentElement.classList.add('dark')
+        }
+      } catch (e) {
+        document.documentElement.classList.add('dark')
+      }
+    </script>
   </head>
   <body>
     <div id="root">

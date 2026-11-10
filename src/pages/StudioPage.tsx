@@ -141,7 +141,7 @@ export default function StudioPage(): ReactNode {
   const qualityOptions: NativeSelectOption[] = QUALITIES.map((value) => ({ value, label: value }))
 
   return (
-    <div className="nexora-fill overflow-y-auto">
+    <div className="udb-fill-page overflow-y-auto">
       <div className="mx-auto w-full max-w-4xl space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{t('studio.title')}</h1>

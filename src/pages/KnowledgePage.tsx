@@ -98,7 +98,7 @@ export default function KnowledgePage(): ReactNode {
   }, [messageOf, query, t])
 
   return (
-    <div className="nexora-fill overflow-y-auto">
+    <div className="udb-fill-page overflow-y-auto">
       <div className="mx-auto w-full max-w-3xl space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>

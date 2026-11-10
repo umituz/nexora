@@ -386,7 +386,7 @@ export default function ChatPage(): ReactNode {
     messages.length > 0 && messages[messages.length - 1].role === 'assistant' && messages[messages.length - 1].status === 'complete'
 
   return (
-    <div className="nexora-fill flex overflow-hidden rounded-xl border border-border bg-background">
+    <div className="udb-fill-page flex overflow-hidden rounded-xl border border-border bg-background">
       <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
         <ConversationList conversations={conversations} onDelete={(id) => void removeConversation(id)} />
       </aside>
@@ -443,7 +443,7 @@ export default function ChatPage(): ReactNode {
           {loading && <p className="text-center text-sm text-muted-foreground">{t('common.loading')}</p>}
           {!loading && messages.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <span className="nexora-brand-mark mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold">
+              <span className="bg-gradient-to-br from-[#2563eb] to-[#7c3aed] text-white mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold">
                 N
               </span>
               <h2 className="text-lg font-semibold">{t('chat.emptyTitle')}</h2>
