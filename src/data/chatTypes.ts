@@ -158,6 +158,16 @@ export interface WatchScanRow {
   createdAt: string
 }
 
+export interface SessionRow {
+  id: string
+  device: string
+  ipAddress: string | null
+  createdAt: string
+  updatedAt: string
+  expiresAt: string
+  current: boolean
+}
+
 export interface CodeArtifactRow {
   id: string
   conversationId: string | null

@@ -20,6 +20,7 @@ const UsagePage = lazy(() => import('@/pages/UsagePage'))
 const RequestsPage = lazy(() => import('@/pages/RequestsPage'))
 const TasksPage = lazy(() => import('@/pages/TasksPage'))
 const ApiKeysPage = lazy(() => import('@/pages/ApiKeysPage'))
+const SessionsPage = lazy(() => import('@/pages/SessionsPage'))
 const WebhooksPage = lazy(() => import('@/pages/WebhooksPage'))
 const AutomationsPage = lazy(() => import('@/pages/AutomationsPage'))
 const ActivityPage = lazy(() => import('@/pages/ActivityPage'))
@@ -63,6 +64,7 @@ export function AppRoutes(): ReactNode {
           <Route path="requests" element={<RequestsPage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="api-keys" element={<ApiKeysPage />} />
+          <Route path="sessions" element={<SessionsPage />} />
           <Route path="webhooks" element={<WebhooksPage />} />
           <Route path="automations" element={<AutomationsPage />} />
           <Route path="activity" element={<ActivityPage />} />

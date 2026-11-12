@@ -9,6 +9,7 @@ import {
   Layers,
   LayoutDashboard,
   ListTodo,
+  MonitorSmartphone,
   MessagesSquare,
   Radar,
   ScrollText,
@@ -38,6 +39,7 @@ export interface NavItem {
     | 'requests'
     | 'tasks'
     | 'apiKeys'
+    | 'sessions'
     | 'webhooks'
     | 'automations'
     | 'activity'
@@ -68,6 +70,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'requests', href: '/app/requests', icon: Zap, group: 'workspace' },
   { key: 'tasks', href: '/app/tasks', icon: ListTodo, group: 'system' },
   { key: 'apiKeys', href: '/app/api-keys', icon: KeyRound, group: 'system' },
+  { key: 'sessions', href: '/app/sessions', icon: MonitorSmartphone, group: 'system' },
   { key: 'webhooks', href: '/app/webhooks', icon: Webhook, group: 'system' },
   { key: 'automations', href: '/app/automations', icon: Workflow, group: 'system' },
   { key: 'activity', href: '/app/activity', icon: ScrollText, group: 'system' },

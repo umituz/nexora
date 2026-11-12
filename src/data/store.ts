@@ -21,6 +21,7 @@ import type {
   WebhookRow,
   WatchItemRow,
   WatchScanRow,
+  SessionRow,
 } from './chatTypes'
 
 interface NexoraDatabase {
@@ -40,6 +41,7 @@ interface NexoraDatabase {
   automations: AutomationRow[]
   watchlist: WatchItemRow[]
   watchFeed: WatchScanRow[]
+  sessions: SessionRow[]
   activity: ActivityRow[]
   notifications: NotificationRow[]
   usage: UsageSummary
@@ -66,6 +68,7 @@ export const store = createStore<NexoraDatabase>({
     automations: '/api/automations',
     watchlist: '/api/watchlist',
     watchFeed: '/api/watchlist/feed',
+    sessions: '/api/sessions',
     activity: '/api/activity',
     notifications: '/api/notifications',
     usage: '/api/usage/summary',
@@ -90,6 +93,7 @@ export const store = createStore<NexoraDatabase>({
     automations: [],
     watchlist: [],
     watchFeed: [],
+    sessions: [],
     activity: [],
     notifications: [],
     usage: { requests: 0, inputTokens: 0, outputTokens: 0, costMicros: 0 },

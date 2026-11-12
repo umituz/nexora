@@ -17,6 +17,7 @@ const ACTION_TARGETS = [
   'document',
   'research',
   'api_key',
+  'session',
   'webhook',
   'automation',
   'watchlist',
