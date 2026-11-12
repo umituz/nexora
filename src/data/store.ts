@@ -17,6 +17,7 @@ import type {
   TaskRow,
   ToolRow,
   UserSettings,
+  WebhookRow,
 } from './chatTypes'
 
 interface NexoraDatabase {
@@ -32,6 +33,7 @@ interface NexoraDatabase {
   codeArtifacts: CodeArtifactRow[]
   tasks: TaskRow[]
   apiKeys: ApiKeyRow[]
+  webhooks: WebhookRow[]
   activity: ActivityRow[]
   notifications: NotificationRow[]
   usage: UsageSummary
@@ -54,6 +56,7 @@ export const store = createStore<NexoraDatabase>({
     codeArtifacts: '/api/code-artifacts',
     tasks: '/api/tasks',
     apiKeys: '/api/api-keys',
+    webhooks: '/api/webhooks',
     activity: '/api/activity',
     notifications: '/api/notifications',
     usage: '/api/usage/summary',
@@ -74,6 +77,7 @@ export const store = createStore<NexoraDatabase>({
     codeArtifacts: [],
     tasks: [],
     apiKeys: [],
+    webhooks: [],
     activity: [],
     notifications: [],
     usage: { requests: 0, inputTokens: 0, outputTokens: 0, costMicros: 0 },

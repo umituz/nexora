@@ -16,6 +16,8 @@ import { audioRouter } from './routes/audio'
 import { chatRouter } from './routes/chat'
 import { usageRouter } from './routes/usage'
 import { apiKeysRouter } from './routes/api-keys'
+import { webhooksRouter } from './routes/webhooks'
+import { requestsRouter } from './routes/requests'
 import { activityRouter } from './routes/activity'
 import { notificationsRouter } from './routes/notifications'
 import { settingsRouter } from './routes/settings'
@@ -45,6 +47,8 @@ export default createApi<Env>({
     ['/', attachmentsRouter],
     ['/usage', usageRouter],
     ['/api-keys', apiKeysRouter],
+    ['/webhooks', webhooksRouter],
+    ['/requests', requestsRouter],
     ['/activity', activityRouter],
     ['/notifications', notificationsRouter],
     ['/settings', settingsRouter],

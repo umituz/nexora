@@ -392,6 +392,47 @@ export const apiKeys = pgTable(
   ],
 )
 
+export const webhooks = pgTable(
+  tn('webhooks'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    name: text('name').notNull(),
+    url: text('url').notNull(),
+    events: jsonb('events').$type<string[]>().notNull().default([]),
+    secret: text('secret').notNull(),
+    active: boolean('active').notNull().default(true),
+    successCount: integer('success_count').notNull().default(0),
+    failureCount: integer('failure_count').notNull().default(0),
+    lastTriggeredAt: timestamp('last_triggered_at', { withTimezone: true }),
+    lastStatusCode: integer('last_status_code'),
+    ...trio(),
+  },
+  (t) => [index(tn('webhooks_user_idx')).on(t.userId, t.createdAt)],
+)
+
+export const webhookDeliveries = pgTable(
+  tn('webhook_deliveries'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    webhookId: text('webhook_id')
+      .notNull()
+      .references(() => webhooks.id),
+    event: text('event').notNull(),
+    ok: boolean('ok').notNull(),
+    statusCode: integer('status_code'),
+    durationMs: integer('duration_ms').notNull().default(0),
+    error: text('error'),
+    ...trio(),
+  },
+  (t) => [index(tn('webhook_deliveries_webhook_idx')).on(t.webhookId, t.createdAt)],
+)
+
 export const activity = pgTable(
   tn('activity'),
   {

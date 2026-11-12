@@ -212,6 +212,33 @@ export interface ApiKeyCreatedRow extends ApiKeyRow {
   key: string
 }
 
+export interface WebhookRow {
+  id: string
+  name: string
+  url: string
+  events: string[]
+  active: boolean
+  successCount: number
+  failureCount: number
+  lastTriggeredAt: string | null
+  lastStatusCode: number | null
+  createdAt: string
+}
+
+export interface WebhookCreatedRow extends WebhookRow {
+  secret: string
+}
+
+export interface WebhookDeliveryRow {
+  id: string
+  event: string
+  ok: boolean
+  statusCode: number | null
+  durationMs: number
+  error: string | null
+  createdAt: string
+}
+
 export interface ActivityRow {
   id: string
   action: string

@@ -223,3 +223,33 @@ export interface UsageAnalytics {
   latency: UsageModelLatency[]
   errors: UsageErrorGroup[]
 }
+
+export interface UsageRequestRow {
+  id: string
+  createdAt: string
+  status: string
+  model: string
+  providerName: string | null
+  conversationId: string | null
+  conversationTitle: string | null
+  durationMs: number
+  inputTokens: number
+  outputTokens: number
+  reasoningTokens: number
+  costMicros: number
+}
+
+export interface UsageRequestsPage {
+  rows: UsageRequestRow[]
+  total: number
+  page: number
+  pageSize: number
+  models: string[]
+}
+
+export interface WebhookDeliveryOutcome {
+  ok: boolean
+  statusCode: number | null
+  durationMs: number
+  error: string | null
+}

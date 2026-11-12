@@ -5,6 +5,7 @@ import AppLayout from '@/app/AppLayout'
 import LandingHomePage from '@/landing/LandingHomePage'
 
 const LoginPage = lazy(() => import('@/pages/LoginPage'))
+const OverviewPage = lazy(() => import('@/pages/OverviewPage'))
 const ChatPage = lazy(() => import('@/pages/ChatPage'))
 const ProjectsPage = lazy(() => import('@/pages/ProjectsPage'))
 const MemoriesPage = lazy(() => import('@/pages/MemoriesPage'))
@@ -15,8 +16,10 @@ const CodePage = lazy(() => import('@/pages/CodePage'))
 const StudioPage = lazy(() => import('@/pages/StudioPage'))
 const ModelsPage = lazy(() => import('@/pages/ModelsPage'))
 const UsagePage = lazy(() => import('@/pages/UsagePage'))
+const RequestsPage = lazy(() => import('@/pages/RequestsPage'))
 const TasksPage = lazy(() => import('@/pages/TasksPage'))
 const ApiKeysPage = lazy(() => import('@/pages/ApiKeysPage'))
+const WebhooksPage = lazy(() => import('@/pages/WebhooksPage'))
 const ActivityPage = lazy(() => import('@/pages/ActivityPage'))
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
@@ -41,7 +44,8 @@ export function AppRoutes(): ReactNode {
         <Route path="/changelog" element={<ChangelogPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/app" element={<AppLayout />}>
-          <Route index element={<Navigate to="chat" replace />} />
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<OverviewPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:conversationId" element={<ChatPage />} />
           <Route path="projects" element={<ProjectsPage />} />
@@ -53,8 +57,10 @@ export function AppRoutes(): ReactNode {
           <Route path="studio" element={<StudioPage />} />
           <Route path="models" element={<ModelsPage />} />
           <Route path="usage" element={<UsagePage />} />
+          <Route path="requests" element={<RequestsPage />} />
           <Route path="tasks" element={<TasksPage />} />
           <Route path="api-keys" element={<ApiKeysPage />} />
+          <Route path="webhooks" element={<WebhooksPage />} />
           <Route path="activity" element={<ActivityPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="settings" element={<SettingsPage />} />

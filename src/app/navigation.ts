@@ -7,17 +7,21 @@ import {
   FolderKanban,
   KeyRound,
   Layers,
+  LayoutDashboard,
   ListTodo,
   MessagesSquare,
   ScrollText,
   Settings,
   Sparkles,
   Telescope,
+  Webhook,
+  Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   key:
+    | 'overview'
     | 'chat'
     | 'projects'
     | 'memories'
@@ -28,8 +32,10 @@ export interface NavItem {
     | 'studio'
     | 'models'
     | 'usage'
+    | 'requests'
     | 'tasks'
     | 'apiKeys'
+    | 'webhooks'
     | 'activity'
     | 'settings'
   href: string
@@ -43,6 +49,7 @@ export const NAV_GROUPS: { id: NavItem['group']; titleKey: string | null }[] = [
 ]
 
 export const NAV_ITEMS: NavItem[] = [
+  { key: 'overview', href: '/app/overview', icon: LayoutDashboard, group: 'workspace' },
   { key: 'chat', href: '/app/chat', icon: MessagesSquare, group: 'workspace' },
   { key: 'projects', href: '/app/projects', icon: FolderKanban, group: 'workspace' },
   { key: 'memories', href: '/app/memories', icon: Brain, group: 'workspace' },
@@ -53,8 +60,10 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'studio', href: '/app/studio', icon: Sparkles, group: 'workspace' },
   { key: 'models', href: '/app/models', icon: Layers, group: 'workspace' },
   { key: 'usage', href: '/app/usage', icon: BarChart3, group: 'workspace' },
+  { key: 'requests', href: '/app/requests', icon: Zap, group: 'workspace' },
   { key: 'tasks', href: '/app/tasks', icon: ListTodo, group: 'system' },
   { key: 'apiKeys', href: '/app/api-keys', icon: KeyRound, group: 'system' },
+  { key: 'webhooks', href: '/app/webhooks', icon: Webhook, group: 'system' },
   { key: 'activity', href: '/app/activity', icon: ScrollText, group: 'system' },
   { key: 'settings', href: '/app/settings', icon: Settings, group: 'system' },
 ]
