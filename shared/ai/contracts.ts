@@ -130,6 +130,17 @@ export interface PublicProvider {
   available: boolean
 }
 
+export interface ModelUsageStats {
+  model: string
+  providerId: string | null
+  requests: number
+  inputTokens: number
+  outputTokens: number
+  costMicros: number
+  avgDurationMs: number
+  lastUsedAt: string | null
+}
+
 export interface UsageSummary {
   requests: number
   inputTokens: number

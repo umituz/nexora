@@ -1,8 +1,8 @@
-import { BarChart3, BookOpen, Bot, Brain, FileCode2, FolderKanban, MessagesSquare, Sparkles, Telescope } from 'lucide-react'
+import { BarChart3, BookOpen, Bot, Brain, FileCode2, FolderKanban, Layers, MessagesSquare, Sparkles, Telescope } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
-  key: 'chat' | 'projects' | 'memories' | 'agents' | 'knowledge' | 'research' | 'code' | 'studio' | 'usage'
+  key: 'chat' | 'projects' | 'memories' | 'agents' | 'knowledge' | 'research' | 'code' | 'studio' | 'models' | 'usage'
   href: string
   icon: LucideIcon
   group: 'workspace'
@@ -21,5 +21,6 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'research', href: '/app/research', icon: Telescope, group: 'workspace' },
   { key: 'code', href: '/app/code', icon: FileCode2, group: 'workspace' },
   { key: 'studio', href: '/app/studio', icon: Sparkles, group: 'workspace' },
+  { key: 'models', href: '/app/models', icon: Layers, group: 'workspace' },
   { key: 'usage', href: '/app/usage', icon: BarChart3, group: 'workspace' },
 ]

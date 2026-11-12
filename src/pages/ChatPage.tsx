@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { apiFetch } from '@umituz/web-hono/client'
 import { usePageTitle } from '@umituz/web-dashboard'
 import { Button, NativeSelect } from '@umituz/web-design-system'
@@ -37,6 +37,8 @@ export default function ChatPage(): ReactNode {
   const t = useT()
   const navigate = useNavigate()
   const { conversationId } = useParams()
+  const [searchParams] = useSearchParams()
+  const requestedModelId = searchParams.get('model')
   const conversations = useCollection('conversations')
   const models = useCollection('models')
   const projects = useCollection('projects')
@@ -54,6 +56,7 @@ export default function ChatPage(): ReactNode {
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const handleRef = useRef<StreamHandle | null>(null)
   const streamingConversationRef = useRef<string | null>(null)
+  const modelParamConsumedRef = useRef(false)
   const stoppedRef = useRef(false)
   const threadRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -65,10 +68,22 @@ export default function ChatPage(): ReactNode {
 
   useEffect(() => {
     const chatModels = models.filter((model) => model.outputTypes.includes('text'))
+    // A ?model= deep link (e.g. from the model directory) seeds new chats once;
+    // conversation/agent bindings and later manual picks take over afterwards.
+    const requested =
+      !modelParamConsumedRef.current && chatModels.some((model) => model.id === requestedModelId)
+        ? requestedModelId
+        : null
+    if (requested) modelParamConsumedRef.current = true
     setSelectedModelId(
-      active?.modelId ?? boundAgent?.modelId ?? chatModels.find((model) => model.isDefault)?.id ?? chatModels[0]?.id ?? null,
+      active?.modelId ??
+        boundAgent?.modelId ??
+        requested ??
+        chatModels.find((model) => model.isDefault)?.id ??
+        chatModels[0]?.id ??
+        null,
     )
-  }, [active?.modelId, active?.agentId, agents, boundAgent?.modelId, models])
+  }, [active?.modelId, active?.agentId, agents, boundAgent?.modelId, models, requestedModelId])
 
   useEffect(() => {
     if (!conversationId) {
