@@ -8,6 +8,7 @@ import type { Env } from '../env'
 import { getDb } from '../db'
 import { agents, models, tools } from '../schema'
 import { requireUser } from '../session'
+import { logActivity } from '../activity-log'
 
 export const agentsRouter = new Hono<{ Bindings: Env }>()
 
@@ -86,6 +87,7 @@ agentsRouter.post(
         active: body.active ?? true,
       })
       .returning()
+    await logActivity(db, user.id, 'agent.create', { type: 'agent', id: row.id, label: row.name })
     return c.json(row, 201)
   },
 )
@@ -114,6 +116,7 @@ agentsRouter.patch(
       })
       .where(and(eq(agents.id, c.req.param('id')), eq(agents.userId, user.id), isNull(agents.deletedAt)))
       .returning()
+    await logActivity(db, user.id, 'agent.update', { type: 'agent', id: row.id, label: row.name })
     return c.json(row, 200)
   },
 )
@@ -121,12 +124,13 @@ agentsRouter.patch(
 agentsRouter.delete('/:id', async (c) => {
   const user = await requireUser(c)
   const db = getDb(c.env)
-  await ownedAgent(db, user.id, c.req.param('id'))
+  const owned = await ownedAgent(db, user.id, c.req.param('id'))
 
   const [row] = await db
     .update(agents)
     .set({ deletedAt: new Date(), active: false, ...stampUpdate(agents) })
     .where(and(eq(agents.id, c.req.param('id')), eq(agents.userId, user.id), isNull(agents.deletedAt)))
     .returning({ id: agents.id })
+  await logActivity(db, user.id, 'agent.delete', { type: 'agent', id: row.id, label: owned.name })
   return c.json({ id: row.id })
 })

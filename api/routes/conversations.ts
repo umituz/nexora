@@ -10,6 +10,7 @@ import { getDb } from '../db'
 import { agents, conversations, projects } from '../schema'
 import { requireUser } from '../session'
 import { resolveModel } from '../ai/model-registry'
+import { logActivity } from '../activity-log'
 
 export const conversationsRouter = new Hono<{ Bindings: Env }>()
 
@@ -93,6 +94,7 @@ conversationsRouter.post(
         settings: (body.settings ?? {}) satisfies ConversationSettings,
       })
       .returning()
+    await logActivity(db, user.id, 'conversation.create', { type: 'conversation', id: row.id, label: row.title })
     return c.json(row, 201)
   },
 )
@@ -127,6 +129,13 @@ conversationsRouter.patch(
       })
       .where(and(eq(conversations.id, id), isNull(conversations.deletedAt)))
       .returning()
+    if (body.title !== undefined && body.title !== existing.title) {
+      await logActivity(db, user.id, 'conversation.rename', {
+        type: 'conversation',
+        id: row.id,
+        label: `${existing.title} → ${row.title}`,
+      })
+    }
     return c.json(row)
   },
 )
@@ -142,5 +151,6 @@ conversationsRouter.delete('/:id', async (c) => {
     .where(and(eq(conversations.id, id), eq(conversations.userId, user.id), isNull(conversations.deletedAt)))
     .returning()
   if (!row) return c.json({ error: 'Conversation not found' }, 404)
+  await logActivity(db, user.id, 'conversation.delete', { type: 'conversation', id: row.id, label: row.title })
   return c.json({ success: true })
 })

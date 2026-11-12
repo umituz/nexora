@@ -19,6 +19,7 @@ import { researchRuns, usageRecords } from '../schema'
 import type { Db, Env } from '../env'
 import { resolveModel } from './model-registry'
 import { adapterFor } from './providers'
+import { notify } from '../notify'
 
 export interface ResearchRun {
   id: string
@@ -117,6 +118,15 @@ export async function executeResearch(
     })
     .where(eq(researchRuns.id, input.researchId))
 
+  await notify(db, {
+    userId: input.userId,
+    type: 'research.ready',
+    title: 'Research brief ready',
+    body: input.query,
+    severity: 'success',
+    link: '/app/research',
+  })
+
   if (outcome.usage && (outcome.usage.inputTokens > 0 || outcome.usage.outputTokens > 0)) {
     await db.insert(usageRecords).values({
       id: uid('usage'),
@@ -161,10 +171,25 @@ export async function createResearchRun(db: Db, input: { userId: string; query: 
 }
 
 export async function markResearchFailed(db: Db, researchId: string, message: string): Promise<void> {
+  const [row] = await db
+    .select({ userId: researchRuns.userId, query: researchRuns.query })
+    .from(researchRuns)
+    .where(eq(researchRuns.id, researchId))
+    .limit(1)
   await db
     .update(researchRuns)
     .set({ status: 'failed', errorMessage: message, updatedAt: new Date() })
     .where(eq(researchRuns.id, researchId))
+  if (row) {
+    await notify(db, {
+      userId: row.userId,
+      type: 'research.failed',
+      title: 'Research run failed',
+      body: `${row.query} — ${message}`,
+      severity: 'danger',
+      link: '/app/research',
+    })
+  }
 }
 
 export async function listResearchRuns(db: Db, userId: string): Promise<ResearchRun[]> {

@@ -6,6 +6,7 @@ import { Button, Input, NativeSelect, Textarea } from '@umituz/web-design-system
 import type { NativeSelectOption } from '@umituz/web-design-system'
 import { Trash2, Wrench } from 'lucide-react'
 import type { AgentRow, ToolRow } from '@/data/chatTypes'
+import { AGENT_TEMPLATES } from '@/data/agentTemplates'
 import { store, useCollection } from '@/data/store'
 import { useT } from '@/i18n'
 
@@ -39,6 +40,22 @@ export default function AgentsPage(): ReactNode {
     setEditingId(null)
     setDraft(EMPTY_DRAFT)
   }, [])
+
+  const startFromTemplate = useCallback(
+    (templateId: string) => {
+      const template = AGENT_TEMPLATES.find((row) => row.id === templateId)
+      if (!template) return
+      setEditingId(null)
+      setDraft({
+        name: template.name,
+        description: template.description,
+        instructions: template.instructions,
+        modelId: '',
+        toolIds: tools.filter((tool) => template.toolKeys.includes(tool.key)).map((tool) => tool.id),
+      })
+    },
+    [tools],
+  )
 
   const startEdit = useCallback((agent: AgentRow) => {
     setEditingId(agent.id)
@@ -225,6 +242,39 @@ export default function AgentsPage(): ReactNode {
             )
           })}
         </div>
+
+        {draft === null && (
+          <div className="space-y-3 border-t border-border pt-6">
+            <div>
+              <h2 className="text-sm font-semibold">{t('agents.templatesTitle')}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">{t('agents.templatesHint')}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {AGENT_TEMPLATES.map((template) => (
+                <div key={template.id} className="flex flex-col rounded-xl border border-border bg-card p-4">
+                  <p className="text-sm font-medium">{template.name}</p>
+                  <p className="mt-1 flex-1 text-xs text-muted-foreground">{template.description}</p>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap gap-1">
+                      {template.toolKeys.map((key) => (
+                        <span
+                          key={key}
+                          className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[10px] text-muted-foreground"
+                        >
+                          <Wrench size={10} aria-hidden="true" />
+                          {tools.find((tool) => tool.key === key)?.name ?? key}
+                        </span>
+                      ))}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => startFromTemplate(template.id)}>
+                      {t('agents.useTemplate')}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

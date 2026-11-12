@@ -43,6 +43,7 @@ export default function ChatPage(): ReactNode {
   const models = useCollection('models')
   const projects = useCollection('projects')
   const agents = useCollection('agents')
+  const settings = useCollection('settings')
 
   const [messages, setMessages] = useState<ChatMessageView[]>([])
   const [attachments, setAttachments] = useState<AttachmentRow[]>([])
@@ -75,15 +76,20 @@ export default function ChatPage(): ReactNode {
         ? requestedModelId
         : null
     if (requested) modelParamConsumedRef.current = true
+    const preferred =
+      settings.defaultModelId && chatModels.some((model) => model.id === settings.defaultModelId)
+        ? settings.defaultModelId
+        : null
     setSelectedModelId(
       active?.modelId ??
         boundAgent?.modelId ??
         requested ??
+        preferred ??
         chatModels.find((model) => model.isDefault)?.id ??
         chatModels[0]?.id ??
         null,
     )
-  }, [active?.modelId, active?.agentId, agents, boundAgent?.modelId, models, requestedModelId])
+  }, [active?.modelId, active?.agentId, agents, boundAgent?.modelId, models, requestedModelId, settings.defaultModelId])
 
   useEffect(() => {
     if (!conversationId) {

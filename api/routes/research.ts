@@ -11,6 +11,7 @@ import { createResearchRun, deleteResearchRun, listResearchRuns } from '../ai/re
 import { enqueueTask, runTask } from '../ai/tasks'
 import { registerBuiltinTaskHandlers } from '../ai/task-handlers'
 import { requireUser } from '../session'
+import { logActivity } from '../activity-log'
 
 registerBuiltinTaskHandlers()
 
@@ -38,6 +39,8 @@ researchRouter.post('/', validator('json', validateJson(startSchema, 'Invalid re
     payload: { researchId: run.id, query: body.query },
   })
   c.executionCtx.waitUntil(runTask(db, c.env, task.id))
+  const trimmed = body.query.length > 60 ? `${body.query.slice(0, 60)}…` : body.query
+  await logActivity(db, user.id, 'research.start', { type: 'research', id: run.id, label: trimmed })
   return c.json({ run, taskId: task.id }, 202)
 })
 
@@ -58,5 +61,6 @@ researchRouter.delete('/:id', async (c) => {
   const db = getDb(c.env)
   const removed = await deleteResearchRun(db, user.id, c.req.param('id'))
   if (!removed) return c.json({ error: 'Research run not found' }, 404)
+  await logActivity(db, user.id, 'research.delete', { type: 'research', id: c.req.param('id') })
   return c.json({ ok: true })
 })

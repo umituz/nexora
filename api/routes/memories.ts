@@ -8,6 +8,7 @@ import type { Env } from '../env'
 import { getDb } from '../db'
 import { memories } from '../schema'
 import { requireUser } from '../session'
+import { logActivity } from '../activity-log'
 
 export const memoriesRouter = new Hono<{ Bindings: Env }>()
 
@@ -58,6 +59,11 @@ memoriesRouter.post('/', validator('json', validateJson(createSchema, 'Invalid m
       pinned: body.pinned ?? false,
     })
     .returning()
+  await logActivity(db, user.id, 'memory.create', {
+    type: 'memory',
+    id: created.id,
+    label: created.content.length > 60 ? `${created.content.slice(0, 60)}…` : created.content,
+  })
   return c.json(created, 201)
 })
 
@@ -89,7 +95,7 @@ memoriesRouter.delete('/:id', async (c) => {
   const db = getDb(c.env)
   const id = c.req.param('id')
   if (!(await ownedMemory(db, id, user.id))) return c.json({ error: 'Memory not found' }, 404)
-
+  await logActivity(db, user.id, 'memory.delete', { type: 'memory', id })
   await db
     .update(memories)
     .set({ deletedAt: new Date(), ...stampUpdate(memories) })

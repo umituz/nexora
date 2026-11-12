@@ -5,6 +5,7 @@ import type { Db, Env } from '../env'
 import { batchEmbed, buildUsageData, chunkText, CHUNK_TEXT_LIMIT } from '@umituz/web-ai'
 import { resolveEmbeddingModel } from './model-registry'
 import { embeddingsAdapterFor, type EmbeddingsAdapter } from './providers'
+import { notify } from '../notify'
 
 export const KNOWLEDGE_MAX_RESULTS = 8
 const EMBED_BATCH_SIZE = 32
@@ -63,10 +64,25 @@ export async function createPendingDocument(db: Db, input: { userId: string; tit
 }
 
 export async function markDocumentFailed(db: Db, documentId: string, message: string): Promise<void> {
+  const [row] = await db
+    .select({ userId: documents.userId, title: documents.title })
+    .from(documents)
+    .where(eq(documents.id, documentId))
+    .limit(1)
   await db
     .update(documents)
     .set({ status: 'failed', errorMessage: message, updatedAt: new Date() })
     .where(eq(documents.id, documentId))
+  if (row) {
+    await notify(db, {
+      userId: row.userId,
+      type: 'document.failed',
+      title: 'Document indexing failed',
+      body: `"${row.title}" could not be indexed: ${message}`,
+      severity: 'danger',
+      link: '/app/knowledge',
+    })
+  }
 }
 
 export async function executeIndexing(
@@ -115,6 +131,20 @@ export async function executeIndexing(
       updatedAt: new Date(),
     })
     .where(eq(documents.id, input.documentId))
+
+  const [documentRow] = await db
+    .select({ title: documents.title })
+    .from(documents)
+    .where(eq(documents.id, input.documentId))
+    .limit(1)
+  await notify(db, {
+    userId: input.userId,
+    type: 'document.ready',
+    title: 'Document indexed',
+    body: documentRow ? `"${documentRow.title}" is ready to search (${chunks.length} chunks).` : undefined,
+    severity: 'success',
+    link: '/app/knowledge',
+  })
 
   if (inputTokens !== null && inputTokens > 0) {
     await db.insert(usageRecords).values({
@@ -194,18 +224,22 @@ export async function listDocuments(db: Db, userId: string): Promise<IndexedDocu
     .orderBy(desc(documents.createdAt))
 }
 
-export async function deleteDocument(db: Db, userId: string, id: string): Promise<boolean> {
+export async function deleteDocument(
+  db: Db,
+  userId: string,
+  id: string,
+): Promise<{ id: string; title: string } | null> {
   const [row] = await db
-    .select({ id: documents.id })
+    .select({ id: documents.id, title: documents.title })
     .from(documents)
     .where(and(eq(documents.id, id), eq(documents.userId, userId), isNull(documents.deletedAt)))
     .limit(1)
-  if (!row) return false
+  if (!row) return null
 
   await db.delete(documentChunks).where(eq(documentChunks.documentId, id))
   await db
     .update(documents)
     .set({ deletedAt: new Date(), ...stampUpdate(documents) })
     .where(eq(documents.id, id))
-  return true
+  return row
 }

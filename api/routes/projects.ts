@@ -8,6 +8,7 @@ import type { Env } from '../env'
 import { getDb } from '../db'
 import { conversations, projects } from '../schema'
 import { requireUser } from '../session'
+import { logActivity } from '../activity-log'
 
 export const projectsRouter = new Hono<{ Bindings: Env }>()
 
@@ -27,7 +28,7 @@ const updateSchema = z.object({
 
 async function ownedProject(db: ReturnType<typeof getDb>, id: string, userId: string) {
   const [row] = await db
-    .select({ id: projects.id })
+    .select({ id: projects.id, name: projects.name })
     .from(projects)
     .where(and(eq(projects.id, id), eq(projects.userId, userId), isNull(projects.deletedAt)))
     .limit(1)
@@ -60,6 +61,7 @@ projectsRouter.post('/', validator('json', validateJson(createSchema, 'Invalid p
       instructions: body.instructions ?? null,
     })
     .returning()
+  await logActivity(db, user.id, 'project.create', { type: 'project', id: created.id, label: created.name })
   return c.json(created, 201)
 })
 
@@ -83,6 +85,7 @@ projectsRouter.patch(
       })
       .where(eq(projects.id, id))
       .returning()
+    await logActivity(db, user.id, 'project.update', { type: 'project', id, label: updated.name })
     return c.json(updated, 200)
   },
 )
@@ -91,7 +94,9 @@ projectsRouter.delete('/:id', async (c) => {
   const user = await requireUser(c)
   const db = getDb(c.env)
   const id = c.req.param('id')
-  if (!(await ownedProject(db, id, user.id))) return c.json({ error: 'Project not found' }, 404)
+  const owned = await ownedProject(db, id, user.id)
+  if (!owned) return c.json({ error: 'Project not found' }, 404)
+  await logActivity(db, user.id, 'project.delete', { type: 'project', id, label: owned.name })
 
   await db
     .update(projects)

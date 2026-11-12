@@ -1,15 +1,45 @@
-import { BarChart3, BookOpen, Bot, Brain, FileCode2, FolderKanban, Layers, MessagesSquare, Sparkles, Telescope } from 'lucide-react'
+import {
+  BarChart3,
+  BookOpen,
+  Bot,
+  Brain,
+  FileCode2,
+  FolderKanban,
+  KeyRound,
+  Layers,
+  ListTodo,
+  MessagesSquare,
+  ScrollText,
+  Settings,
+  Sparkles,
+  Telescope,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 export interface NavItem {
-  key: 'chat' | 'projects' | 'memories' | 'agents' | 'knowledge' | 'research' | 'code' | 'studio' | 'models' | 'usage'
+  key:
+    | 'chat'
+    | 'projects'
+    | 'memories'
+    | 'agents'
+    | 'knowledge'
+    | 'research'
+    | 'code'
+    | 'studio'
+    | 'models'
+    | 'usage'
+    | 'tasks'
+    | 'apiKeys'
+    | 'activity'
+    | 'settings'
   href: string
   icon: LucideIcon
-  group: 'workspace'
+  group: 'workspace' | 'system'
 }
 
 export const NAV_GROUPS: { id: NavItem['group']; titleKey: string | null }[] = [
   { id: 'workspace', titleKey: null },
+  { id: 'system', titleKey: 'nav.groups.system' },
 ]
 
 export const NAV_ITEMS: NavItem[] = [
@@ -23,4 +53,10 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'studio', href: '/app/studio', icon: Sparkles, group: 'workspace' },
   { key: 'models', href: '/app/models', icon: Layers, group: 'workspace' },
   { key: 'usage', href: '/app/usage', icon: BarChart3, group: 'workspace' },
+  { key: 'tasks', href: '/app/tasks', icon: ListTodo, group: 'system' },
+  { key: 'apiKeys', href: '/app/api-keys', icon: KeyRound, group: 'system' },
+  { key: 'activity', href: '/app/activity', icon: ScrollText, group: 'system' },
+  { key: 'settings', href: '/app/settings', icon: Settings, group: 'system' },
 ]
+
+export const NOTIFICATIONS_ROUTE = '/app/notifications'

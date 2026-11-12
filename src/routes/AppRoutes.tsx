@@ -15,7 +15,14 @@ const CodePage = lazy(() => import('@/pages/CodePage'))
 const StudioPage = lazy(() => import('@/pages/StudioPage'))
 const ModelsPage = lazy(() => import('@/pages/ModelsPage'))
 const UsagePage = lazy(() => import('@/pages/UsagePage'))
+const TasksPage = lazy(() => import('@/pages/TasksPage'))
+const ApiKeysPage = lazy(() => import('@/pages/ApiKeysPage'))
+const ActivityPage = lazy(() => import('@/pages/ActivityPage'))
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
 const FeaturesPage = lazy(() => import('@/landing/FeaturesPage'))
+const ChangelogPage = lazy(() => import('@/landing/ChangelogPage'))
 
 function PageFallback() {
   return (
@@ -31,6 +38,7 @@ export function AppRoutes(): ReactNode {
       <Routes>
         <Route path="/" element={<LandingHomePage />} />
         <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/changelog" element={<ChangelogPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Navigate to="chat" replace />} />
@@ -45,6 +53,12 @@ export function AppRoutes(): ReactNode {
           <Route path="studio" element={<StudioPage />} />
           <Route path="models" element={<ModelsPage />} />
           <Route path="usage" element={<UsagePage />} />
+          <Route path="tasks" element={<TasksPage />} />
+          <Route path="api-keys" element={<ApiKeysPage />} />
+          <Route path="activity" element={<ActivityPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

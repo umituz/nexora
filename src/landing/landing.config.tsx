@@ -13,7 +13,10 @@ export function useLandingConfig(): PublicLayoutConfig {
     const brand = { mark: BRAND.mark, name: BRAND.name, tagline: BRAND.tagline, to: '/' }
 
     return {
-      navItems: [{ to: '/features', label: 'Features' }],
+      navItems: [
+        { to: '/features', label: 'Features' },
+        { to: '/changelog', label: t('changelog.navLabel') },
+      ],
       brand,
       ctaPrimary: { to: '/login?mode=register', label: t('landing.getStarted') },
       authCta: user
@@ -31,6 +34,7 @@ export function useLandingConfig(): PublicLayoutConfig {
           heading: 'Platform',
           links: [
             { to: '/features', label: 'Features' },
+            { to: '/changelog', label: t('changelog.navLabel') },
             { to: '/login?mode=register', label: t('landing.getStarted') },
           ],
         },

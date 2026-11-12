@@ -1,18 +1,21 @@
-import { useMemo } from 'react'
-import { Navigate } from 'react-router'
+import { useCallback, useEffect, useMemo } from 'react'
+import { Navigate, useLocation } from 'react-router'
 import { DashboardLayout } from '@umituz/web-dashboard'
 import type {
   DashboardLayoutConfig,
   DashboardLayoutLabels,
+  DashboardNotification,
   DashboardUser,
   SidebarGroup,
 } from '@umituz/web-dashboard'
 import { useSession } from '@umituz/web-auth/session'
+import { apiFetch } from '@umituz/web-hono/client'
 import { useDesignSystem } from '@umituz/web-design-system/providers'
+import { User as UserIcon } from 'lucide-react'
 import { BRAND } from '@/brand'
 import { useT } from '@/i18n'
-import { useHydration } from '@/data/store'
-import { NAV_GROUPS, NAV_ITEMS } from './navigation'
+import { useHydration, useCollection, store } from '@/data/store'
+import { NOTIFICATIONS_ROUTE, NAV_GROUPS, NAV_ITEMS } from './navigation'
 
 function PageFallback() {
   return (
@@ -25,8 +28,16 @@ function PageFallback() {
 export default function AppLayout() {
   const { user: sessionUser, status, logout } = useSession()
   const hydration = useHydration()
+  const notifications = useCollection('notifications')
   const t = useT()
   const { mode, toggleMode } = useDesignSystem()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (hydration.status !== 'ready') return
+    if (location.pathname.startsWith(NOTIFICATIONS_ROUTE)) return
+    void store.refresh(['notifications'])
+  }, [location.pathname, hydration.status])
 
   const labels: DashboardLayoutLabels = useMemo(
     () => ({
@@ -60,6 +71,36 @@ export default function AppLayout() {
     [sessionUser],
   )
 
+  const bellNotifications: DashboardNotification[] = useMemo(
+    () =>
+      notifications.slice(0, 8).map((row) => ({
+        id: row.id,
+        text: row.body ? `${row.title} — ${row.body}` : row.title,
+        read: row.readAt !== null,
+        createdAt: row.createdAt,
+        to: row.link ?? undefined,
+      })),
+    [notifications],
+  )
+
+  const markAllRead = useCallback(async () => {
+    try {
+      await apiFetch('/api/notifications/read-all', { method: 'POST' })
+      await store.refresh(['notifications'])
+    } catch {
+      return
+    }
+  }, [])
+
+  const dismissNotification = useCallback(async (id: string) => {
+    try {
+      await apiFetch(`/api/notifications/${id}`, { method: 'DELETE' })
+      await store.refresh(['notifications'])
+    } catch {
+      return
+    }
+  }, [])
+
   const config: DashboardLayoutConfig = useMemo(() => {
     const sidebarGroups: SidebarGroup[] = NAV_GROUPS.map((group) => ({
       title: group.titleKey ? t(group.titleKey) : undefined,
@@ -79,6 +120,15 @@ export default function AppLayout() {
           {BRAND.mark}
         </span>
       ),
+      extraTitleMap: {
+        [NOTIFICATIONS_ROUTE]: t('nav.items.notifications'),
+        '/app/profile': t('nav.items.profile'),
+      },
+      notificationsViewAll: { label: t('notifications.viewAll'), to: NOTIFICATIONS_ROUTE },
+      profileItems: [
+        { key: 'profile', label: t('shell.profile'), icon: <UserIcon size={14} aria-hidden="true" />, to: '/app/profile' },
+      ],
+      showDefaultProfileItems: false,
     }
   }, [t])
 
@@ -109,6 +159,9 @@ export default function AppLayout() {
       onLogout={async () => {
         await logout()
       }}
+      notifications={bellNotifications}
+      onMarkAllRead={() => void markAllRead()}
+      onDismissNotification={(id) => void dismissNotification(id)}
       loginRoute="/login"
       theme={mode}
       onToggleTheme={toggleMode}

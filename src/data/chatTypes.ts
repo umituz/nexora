@@ -197,3 +197,64 @@ export interface StreamHandle {
   promise: Promise<void>
   abort: () => void
 }
+
+export interface ApiKeyRow {
+  id: string
+  name: string
+  prefix: string
+  lastFour: string
+  createdAt: string
+  lastUsedAt: string | null
+  revokedAt: string | null
+}
+
+export interface ApiKeyCreatedRow extends ApiKeyRow {
+  key: string
+}
+
+export interface ActivityRow {
+  id: string
+  action: string
+  targetType: string | null
+  targetId: string | null
+  targetLabel: string | null
+  createdAt: string
+}
+
+export interface NotificationRow {
+  id: string
+  type: string
+  title: string
+  body: string | null
+  severity: 'info' | 'success' | 'warning' | 'danger'
+  link: string | null
+  readAt: string | null
+  createdAt: string
+}
+
+export interface UserSettings {
+  defaultModelId: string | null
+}
+
+export interface ProfileSummary {
+  id: string
+  name: string | null
+  email: string
+  createdAt: string | null
+  stats: {
+    conversations: number
+    messages: number
+    projects: number
+    agents: number
+    documents: number
+    memories: number
+    research: number
+    codeArtifacts: number
+    images: number
+    apiKeys: number
+    requests: number
+    inputTokens: number
+    outputTokens: number
+    costMicros: number
+  }
+}

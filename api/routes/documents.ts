@@ -11,6 +11,7 @@ import { enqueueTask, runTask } from '../ai/tasks'
 import { registerBuiltinTaskHandlers } from '../ai/task-handlers'
 import { AI_ERROR_STATUS } from './chat'
 import { requireUser } from '../session'
+import { logActivity } from '../activity-log'
 
 registerBuiltinTaskHandlers()
 
@@ -46,6 +47,7 @@ documentsRouter.post('/', validator('json', validateJson(createSchema, 'Invalid 
     payload: { documentId: document.id, text: body.text },
   })
   c.executionCtx.waitUntil(runTask(db, c.env, task.id))
+  await logActivity(db, user.id, 'document.create', { type: 'document', id: document.id, label: document.title })
 
   return c.json({ document, taskId: task.id }, 202)
 })
@@ -74,5 +76,6 @@ documentsRouter.delete('/:id', async (c) => {
   const db = getDb(c.env)
   const removed = await deleteDocument(db, user.id, c.req.param('id'))
   if (!removed) return c.json({ error: 'Document not found' }, 404)
+  await logActivity(db, user.id, 'document.delete', { type: 'document', id: removed.id, label: removed.title })
   return c.json({ ok: true }, 200)
 })

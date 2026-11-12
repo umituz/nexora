@@ -15,6 +15,11 @@ import { codeArtifactsRouter } from './routes/code-artifacts'
 import { audioRouter } from './routes/audio'
 import { chatRouter } from './routes/chat'
 import { usageRouter } from './routes/usage'
+import { apiKeysRouter } from './routes/api-keys'
+import { activityRouter } from './routes/activity'
+import { notificationsRouter } from './routes/notifications'
+import { settingsRouter } from './routes/settings'
+import { profileRouter } from './routes/profile'
 import { authRouter } from './auth'
 
 declare const __BUILD_MARKER__: string | undefined
@@ -39,6 +44,11 @@ export default createApi<Env>({
     ['/', chatRouter],
     ['/', attachmentsRouter],
     ['/usage', usageRouter],
+    ['/api-keys', apiKeysRouter],
+    ['/activity', activityRouter],
+    ['/notifications', notificationsRouter],
+    ['/settings', settingsRouter],
+    ['/profile', profileRouter],
     ['/auth', authRouter],
   ],
 })

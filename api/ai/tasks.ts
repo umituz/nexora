@@ -3,10 +3,13 @@ import { uid } from '@umituz/web-hono'
 import { canStartTask, planTaskFailure } from '@umituz/web-ai'
 import { tasks, type TaskLogEntry, type TaskStatus } from '../schema'
 import type { Db, Env } from '../env'
+import { notify } from '../notify'
 
 export const TASK_BACKOFF_CAP_MS = 30_000
 
 export type TaskKind = 'index_document' | 'research'
+
+const SELF_REPORTING_KINDS = new Set<string>(['index_document', 'research'])
 
 export const TASK_POLICIES: Readonly<Record<TaskKind, { maxAttempts: number; backoffBaseMs: number }>> = {
   index_document: { maxAttempts: 3, backoffBaseMs: 2000 },
@@ -110,6 +113,16 @@ export async function runTask(db: Db, env: Env, taskId: string): Promise<void> {
       .set({ status: plan.status, error: message, nextAttemptAt: plan.nextAttemptAt, updatedAt: new Date() })
       .where(eq(tasks.id, taskId))
     await appendLog(db, taskId, plan.log)
+    if (plan.status === 'failed' && !SELF_REPORTING_KINDS.has(claimed.kind)) {
+      await notify(db, {
+        userId: claimed.userId,
+        type: 'task.failed',
+        title: 'Background task failed',
+        body: `${claimed.kind}: ${message}`,
+        severity: 'danger',
+        link: '/app/tasks',
+      })
+    }
   }
 }
 

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, index, integer, jsonb, pgTable, text, uniqueIndex, vector } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, vector } from 'drizzle-orm/pg-core'
 import { trio } from '@umituz/web-hono'
 import { authTables } from '@umituz/web-hono/auth'
 import type {
@@ -370,6 +370,72 @@ export const researchRuns = pgTable(
   },
   (t) => [index(tn('research_runs_user_idx')).on(t.userId, t.createdAt)],
 )
+
+export const apiKeys = pgTable(
+  tn('api_keys'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    name: text('name').notNull(),
+    prefix: text('prefix').notNull(),
+    lastFour: text('last_four').notNull(),
+    keyHash: text('key_hash').notNull(),
+    lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    ...trio(),
+  },
+  (t) => [
+    uniqueIndex(tn('api_keys_hash_unique')).on(t.keyHash),
+    index(tn('api_keys_user_idx')).on(t.userId, t.createdAt),
+  ],
+)
+
+export const activity = pgTable(
+  tn('activity'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    action: text('action').notNull(),
+    targetType: text('target_type'),
+    targetId: text('target_id'),
+    targetLabel: text('target_label'),
+    ...trio(),
+  },
+  (t) => [index(tn('activity_user_idx')).on(t.userId, t.createdAt)],
+)
+
+export const NOTIFICATION_SEVERITIES = ['info', 'success', 'warning', 'danger'] as const
+export type NotificationSeverity = (typeof NOTIFICATION_SEVERITIES)[number]
+
+export const notifications = pgTable(
+  tn('notifications'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    type: text('type').notNull(),
+    title: text('title').notNull(),
+    body: text('body'),
+    severity: text('severity').$type<NotificationSeverity>().notNull().default('info'),
+    link: text('link'),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    ...trio(),
+  },
+  (t) => [index(tn('notifications_user_idx')).on(t.userId, t.createdAt)],
+)
+
+export const userSettings = pgTable(tn('user_settings'), {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => baUser.id),
+  defaultModelId: text('default_model_id'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
 
 export const codeArtifacts = pgTable(
   tn('code_artifacts'),
