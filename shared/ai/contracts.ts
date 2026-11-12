@@ -161,3 +161,54 @@ export interface UsageBreakdown {
   models: UsageModelRow[]
   conversations: UsageConversationRow[]
 }
+
+export interface UsageDayBucket {
+  date: string
+  requests: number
+  attempts: number
+  errors: number
+  inputTokens: number
+  outputTokens: number
+  reasoningTokens: number
+  costMicros: number
+}
+
+export interface UsageTrend {
+  current: number
+  previous: number
+  deltaPct: number | null
+}
+
+export interface UsageModelLatency {
+  model: string
+  providerName: string | null
+  requests: number
+  meanDurationMs: number
+  p95DurationMs: number
+  errorRatePct: number | null
+  costMicros: number
+}
+
+export interface UsageErrorGroup {
+  code: string
+  message: string
+  count: number
+  model: string | null
+  conversationId: string | null
+  conversationTitle: string | null
+  lastSeenAt: string
+}
+
+export interface UsageAnalytics {
+  days: UsageDayBucket[]
+  summary: UsageSummary
+  trends: {
+    requests: UsageTrend
+    inputTokens: UsageTrend
+    outputTokens: UsageTrend
+    costMicros: UsageTrend
+    errorRatePct: UsageTrend
+  }
+  latency: UsageModelLatency[]
+  errors: UsageErrorGroup[]
+}
