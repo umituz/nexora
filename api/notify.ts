@@ -2,6 +2,7 @@ import { uid } from '@umituz/web-hono'
 import { notifications } from './schema'
 import type { NotificationSeverity } from './schema'
 import { dispatchWebhooks } from './webhooks'
+import { runAutomations } from './automations'
 import type { Db } from './env'
 
 export interface NotifyInput {
@@ -23,10 +24,12 @@ export async function notify(db: Db, input: NotifyInput): Promise<void> {
     severity: input.severity ?? 'info',
     link: input.link ?? null,
   })
-  await dispatchWebhooks(db, input.userId, input.type, {
+  const data = {
     title: input.title,
     body: input.body ?? null,
     severity: input.severity ?? 'info',
     link: input.link ?? null,
-  })
+  }
+  await dispatchWebhooks(db, input.userId, input.type, data)
+  await runAutomations(db, input.userId, input.type, data)
 }

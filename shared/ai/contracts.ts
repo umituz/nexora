@@ -253,3 +253,13 @@ export interface WebhookDeliveryOutcome {
   durationMs: number
   error: string | null
 }
+
+export interface AutomationActionOutcome {
+  type: string
+  ok: boolean
+  detail: string
+}
+
+export interface AutomationTestOutcome {
+  ok: boolean
+}

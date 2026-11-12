@@ -15,6 +15,7 @@ import {
   Sparkles,
   Telescope,
   Webhook,
+  Workflow,
   Zap,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -36,6 +37,7 @@ export interface NavItem {
     | 'tasks'
     | 'apiKeys'
     | 'webhooks'
+    | 'automations'
     | 'activity'
     | 'settings'
   href: string
@@ -64,6 +66,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'tasks', href: '/app/tasks', icon: ListTodo, group: 'system' },
   { key: 'apiKeys', href: '/app/api-keys', icon: KeyRound, group: 'system' },
   { key: 'webhooks', href: '/app/webhooks', icon: Webhook, group: 'system' },
+  { key: 'automations', href: '/app/automations', icon: Workflow, group: 'system' },
   { key: 'activity', href: '/app/activity', icon: ScrollText, group: 'system' },
   { key: 'settings', href: '/app/settings', icon: Settings, group: 'system' },
 ]

@@ -18,6 +18,7 @@ const ACTION_TARGETS = [
   'research',
   'api_key',
   'webhook',
+  'automation',
   'settings',
 ] as const
 

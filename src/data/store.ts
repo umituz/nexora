@@ -6,6 +6,7 @@ import type {
   AgentRow,
   ApiKeyRow,
   ArtifactRow,
+  AutomationRow,
   CodeArtifactRow,
   ConversationRow,
   DocumentRow,
@@ -34,6 +35,7 @@ interface NexoraDatabase {
   tasks: TaskRow[]
   apiKeys: ApiKeyRow[]
   webhooks: WebhookRow[]
+  automations: AutomationRow[]
   activity: ActivityRow[]
   notifications: NotificationRow[]
   usage: UsageSummary
@@ -57,6 +59,7 @@ export const store = createStore<NexoraDatabase>({
     tasks: '/api/tasks',
     apiKeys: '/api/api-keys',
     webhooks: '/api/webhooks',
+    automations: '/api/automations',
     activity: '/api/activity',
     notifications: '/api/notifications',
     usage: '/api/usage/summary',
@@ -78,6 +81,7 @@ export const store = createStore<NexoraDatabase>({
     tasks: [],
     apiKeys: [],
     webhooks: [],
+    automations: [],
     activity: [],
     notifications: [],
     usage: { requests: 0, inputTokens: 0, outputTokens: 0, costMicros: 0 },

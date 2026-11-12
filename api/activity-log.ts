@@ -1,6 +1,7 @@
 import { uid } from '@umituz/web-hono'
 import { activity } from './schema'
 import { dispatchWebhooks } from './webhooks'
+import { runAutomations } from './automations'
 import type { Db } from './env'
 
 export interface ActivityTarget {
@@ -23,9 +24,11 @@ export async function logActivity(
     targetId: target?.id ?? null,
     targetLabel: target?.label ?? null,
   })
-  await dispatchWebhooks(db, userId, action, {
+  const data = {
     targetType: target?.type ?? null,
     targetId: target?.id ?? null,
     targetLabel: target?.label ?? null,
-  })
+  }
+  await dispatchWebhooks(db, userId, action, data)
+  await runAutomations(db, userId, action, data)
 }

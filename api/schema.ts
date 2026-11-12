@@ -433,6 +433,53 @@ export const webhookDeliveries = pgTable(
   (t) => [index(tn('webhook_deliveries_webhook_idx')).on(t.webhookId, t.createdAt)],
 )
 
+export type AutomationAction =
+  | { type: 'notify'; title: string; body: string | null; severity: NotificationSeverity }
+  | { type: 'webhook'; url: string; secret: string | null }
+
+export interface AutomationActionOutcome {
+  type: string
+  ok: boolean
+  detail: string
+}
+
+export const automations = pgTable(
+  tn('automations'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    name: text('name').notNull(),
+    trigger: text('trigger').notNull(),
+    actions: jsonb('actions').$type<AutomationAction[]>().notNull().default([]),
+    active: boolean('active').notNull().default(true),
+    runCount: integer('run_count').notNull().default(0),
+    lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+    ...trio(),
+  },
+  (t) => [index(tn('automations_user_idx')).on(t.userId, t.createdAt)],
+)
+
+export const automationRuns = pgTable(
+  tn('automation_runs'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    automationId: text('automation_id')
+      .notNull()
+      .references(() => automations.id),
+    event: text('event').notNull(),
+    ok: boolean('ok').notNull(),
+    results: jsonb('results').$type<AutomationActionOutcome[]>().notNull().default([]),
+    error: text('error'),
+    ...trio(),
+  },
+  (t) => [index(tn('automation_runs_automation_idx')).on(t.automationId, t.createdAt)],
+)
+
 export const activity = pgTable(
   tn('activity'),
   {

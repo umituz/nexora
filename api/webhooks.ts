@@ -32,7 +32,7 @@ export const WEBHOOK_EVENTS = [
 
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
 
-const EVENT_SET = new Set<string>(WEBHOOK_EVENTS)
+export const EVENT_SET = new Set<string>(WEBHOOK_EVENTS)
 const DELIVERY_TIMEOUT_MS = 8000
 const MAX_DELIVERIES_KEPT = 50
 

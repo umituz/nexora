@@ -1,5 +1,6 @@
 import type {
   AssistantToolCall,
+  AutomationActionOutcome,
   ConversationSettings,
   MessageStatus,
   PublicToolCall,
@@ -235,6 +236,32 @@ export interface WebhookDeliveryRow {
   ok: boolean
   statusCode: number | null
   durationMs: number
+  error: string | null
+  createdAt: string
+}
+
+export type AutomationSeverity = 'info' | 'success' | 'warning' | 'danger'
+
+export type AutomationActionRow =
+  | { type: 'notify'; title: string; body: string | null; severity: AutomationSeverity }
+  | { type: 'webhook'; url: string; secret: string | null }
+
+export interface AutomationRow {
+  id: string
+  name: string
+  trigger: string
+  actions: AutomationActionRow[]
+  active: boolean
+  runCount: number
+  lastRunAt: string | null
+  createdAt: string
+}
+
+export interface AutomationRunRow {
+  id: string
+  event: string
+  ok: boolean
+  results: AutomationActionOutcome[]
   error: string | null
   createdAt: string
 }

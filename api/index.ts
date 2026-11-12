@@ -17,6 +17,7 @@ import { chatRouter } from './routes/chat'
 import { usageRouter } from './routes/usage'
 import { apiKeysRouter } from './routes/api-keys'
 import { webhooksRouter } from './routes/webhooks'
+import { automationsRouter } from './routes/automations'
 import { requestsRouter } from './routes/requests'
 import { activityRouter } from './routes/activity'
 import { notificationsRouter } from './routes/notifications'
@@ -48,6 +49,7 @@ export default createApi<Env>({
     ['/usage', usageRouter],
     ['/api-keys', apiKeysRouter],
     ['/webhooks', webhooksRouter],
+    ['/automations', automationsRouter],
     ['/requests', requestsRouter],
     ['/activity', activityRouter],
     ['/notifications', notificationsRouter],
