@@ -5,7 +5,7 @@ import { BookOpen, Bot, MessagesSquare, Telescope } from 'lucide-react'
 import { usePageTitle } from '@umituz/web-dashboard'
 import { LineChart } from '@umituz/web-design-system/charts'
 import { apiFetch } from '@umituz/web-hono/client'
-import type { UsageAnalytics } from '@shared/ai/contracts'
+import type { UsageAnalytics, UsageHeatmap } from '@shared/ai/contracts'
 import { useCollection } from '@/data/store'
 import { useT } from '@/i18n'
 import { formatCompact, formatCost, formatDayLabel, useTimeAgo } from '@/lib/format'
@@ -73,6 +73,85 @@ const TASK_KIND_LABELS: Record<string, string> = {
   research: 'tasks.kinds.research',
 }
 
+const HEATMAP_LEVELS = [
+  'bg-muted',
+  'bg-primary/20',
+  'bg-primary/40',
+  'bg-primary/60',
+  'bg-primary/80',
+  'bg-primary',
+]
+
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
+
+function weekdayLabel(dow: number): string {
+  return new Date(Date.UTC(2024, 0, WEEK_ORDER.indexOf(dow) + 1)).toLocaleDateString(undefined, {
+    weekday: 'short',
+    timeZone: 'UTC',
+  })
+}
+
+function UsageHeatmapGrid({ heatmap }: { heatmap: UsageHeatmap }): ReactNode {
+  const t = useT()
+  const byCell = new Map(heatmap.cells.map((cell) => [`${cell.dow}:${cell.hour}`, cell.requests]))
+  const max = heatmap.cells.reduce((top, cell) => Math.max(top, cell.requests), 0)
+  const levelOf = (count: number): number =>
+    count === 0 || max === 0 ? 0 : Math.min(5, Math.ceil((count / max) * 5))
+
+  return (
+    <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold">{t('overview.heatmap.title')}</h2>
+        <p className="text-xs text-muted-foreground">
+          {t('overview.heatmap.summary', {
+            requests: formatCompact(heatmap.totalRequests),
+            hour: String(heatmap.peakHour ?? 0).padStart(2, '0'),
+          })}
+        </p>
+      </div>
+      <div className="mt-4 overflow-x-auto">
+        <div className="min-w-[540px] space-y-1">
+          {WEEK_ORDER.map((dow) => (
+            <div key={dow} className="flex items-center gap-1">
+              <span className="w-8 shrink-0 text-[10px] font-medium text-muted-foreground">{weekdayLabel(dow)}</span>
+              <div className="flex flex-1 gap-[2px]">
+                {Array.from({ length: 24 }, (_, hour) => {
+                  const count = byCell.get(`${dow}:${hour}`) ?? 0
+                  return (
+                    <div
+                      key={hour}
+                      className={`h-4 flex-1 rounded-[3px] ${HEATMAP_LEVELS[levelOf(count)]}`}
+                      title={t('overview.heatmap.cell', {
+                        day: weekdayLabel(dow),
+                        hour: String(hour).padStart(2, '0'),
+                        count: String(count),
+                      })}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center gap-1 pl-9">
+            {Array.from({ length: 24 }, (_, hour) => (
+              <span key={hour} className="flex-1 text-[10px] text-muted-foreground">
+                {hour % 6 === 0 ? String(hour).padStart(2, '0') : ''}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <span className="text-[10px] text-muted-foreground">{t('overview.heatmap.less')}</span>
+        {HEATMAP_LEVELS.map((level) => (
+          <div key={level} className={`h-3 w-3 rounded-[3px] ${level}`} />
+        ))}
+        <span className="text-[10px] text-muted-foreground">{t('overview.heatmap.more')}</span>
+      </div>
+    </section>
+  )
+}
+
 export default function OverviewPage(): ReactNode {
   const t = useT()
   const formatAgo = useTimeAgo()
@@ -81,6 +160,7 @@ export default function OverviewPage(): ReactNode {
   const tasks = useCollection('tasks')
   const activity = useCollection('activity')
   const [analytics, setAnalytics] = useState<UsageAnalytics | null>(null)
+  const [heatmap, setHeatmap] = useState<UsageHeatmap | null>(null)
   usePageTitle(t('nav.items.overview'))
 
   useEffect(() => {
@@ -91,6 +171,13 @@ export default function OverviewPage(): ReactNode {
       })
       .catch(() => {
         if (alive) setAnalytics(null)
+      })
+    apiFetch<UsageHeatmap>(`/api/usage/heatmap?days=30&tzOffset=${new Date().getTimezoneOffset()}`)
+      .then((data) => {
+        if (alive) setHeatmap(data)
+      })
+      .catch(() => {
+        if (alive) setHeatmap(null)
       })
     return () => {
       alive = false
@@ -196,6 +283,8 @@ export default function OverviewPage(): ReactNode {
             </div>
           </section>
         ) : null}
+
+        {heatmap && heatmap.totalRequests > 0 ? <UsageHeatmapGrid heatmap={heatmap} /> : null}
 
         <div className="grid gap-4 lg:grid-cols-2">
           <Panel title={t('overview.recentConversations')} viewAllTo="/app/chat" viewAllLabel={t('overview.viewAll')}>

@@ -571,6 +571,13 @@ const en = {
       errors: 'Errors',
       legend: '{{requests}} requests · {{cost}}',
     },
+    heatmap: {
+      title: 'When you work',
+      summary: '{{requests}} requests · busiest hour {{hour}}:00',
+      cell: '{{day}} {{hour}}:00 — {{count}} requests',
+      less: 'Less',
+      more: 'More',
+    },
   },
   requests: {
     title: 'Requests',

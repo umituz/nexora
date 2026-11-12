@@ -4,6 +4,7 @@ import type {
   UsageAnalytics,
   UsageBreakdown,
   UsageErrorGroup,
+  UsageHeatmap,
   UsageSummary,
 } from '@shared/ai/contracts'
 import type { Env } from '../env'
@@ -107,6 +108,50 @@ interface RawErrorGroupRow {
  * All interval math happens server-side (no timestamp round-trips through JS —
  * see the Neon timestamptz offset hazard) and day keys are UTC dates.
  */
+interface RawHeatmapRow {
+  dow: number | string
+  hour: number | string
+  requests: number | string
+}
+
+usageRouter.get('/heatmap', async (c) => {
+  const user = await requireUser(c)
+  const db = getDb(c.env)
+  const requestedDays = Number(c.req.query('days'))
+  const days = (ANALYTICS_RANGES as readonly number[]).includes(requestedDays) ? requestedDays : 30
+  const tzParam = Number(c.req.query('tzOffset'))
+  const tzOffset = Number.isFinite(tzParam) ? Math.max(-840, Math.min(720, tzParam)) : 0
+
+  const raw = await db.execute(sql`
+    select extract(dow from ((u.created_at at time zone 'UTC') + make_interval(mins => ${-tzOffset})))::int as dow,
+           extract(hour from ((u.created_at at time zone 'UTC') + make_interval(mins => ${-tzOffset})))::int as hour,
+           count(*)::int as requests
+    from ${usageRecords} u
+    where u.user_id = ${user.id}
+      and u.deleted_at is null
+      and u.created_at >= now() - make_interval(days => ${days})
+      and u.created_at <= now()
+    group by 1, 2
+  `)
+  const rows = (raw as unknown as { rows: RawHeatmapRow[] }).rows ?? []
+
+  const cells = rows.map((row) => ({ dow: Number(row.dow), hour: Number(row.hour), requests: Number(row.requests) }))
+  const totalRequests = cells.reduce((sum, cell) => sum + cell.requests, 0)
+  const byHour = new Map<number, number>()
+  for (const cell of cells) byHour.set(cell.hour, (byHour.get(cell.hour) ?? 0) + cell.requests)
+  let peakHour: number | null = null
+  let peakCount = 0
+  for (const [hour, count] of byHour) {
+    if (count > peakCount) {
+      peakCount = count
+      peakHour = hour
+    }
+  }
+
+  const heatmap: UsageHeatmap = { days, cells, totalRequests, peakHour, peakCount }
+  return c.json(heatmap)
+})
+
 usageRouter.get('/analytics', async (c) => {
   const user = await requireUser(c)
   const db = getDb(c.env)

@@ -224,6 +224,20 @@ export interface UsageAnalytics {
   errors: UsageErrorGroup[]
 }
 
+export interface UsageHeatmapCell {
+  dow: number
+  hour: number
+  requests: number
+}
+
+export interface UsageHeatmap {
+  days: number
+  cells: UsageHeatmapCell[]
+  totalRequests: number
+  peakHour: number | null
+  peakCount: number
+}
+
 export interface UsageRequestRow {
   id: string
   createdAt: string
