@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ListTodo,
   MessagesSquare,
+  Radar,
   ScrollText,
   Settings,
   Sparkles,
@@ -29,6 +30,7 @@ export interface NavItem {
     | 'agents'
     | 'knowledge'
     | 'research'
+    | 'watchlist'
     | 'code'
     | 'studio'
     | 'models'
@@ -58,6 +60,7 @@ export const NAV_ITEMS: NavItem[] = [
   { key: 'agents', href: '/app/agents', icon: Bot, group: 'workspace' },
   { key: 'knowledge', href: '/app/knowledge', icon: BookOpen, group: 'workspace' },
   { key: 'research', href: '/app/research', icon: Telescope, group: 'workspace' },
+  { key: 'watchlist', href: '/app/watchlist', icon: Radar, group: 'workspace' },
   { key: 'code', href: '/app/code', icon: FileCode2, group: 'workspace' },
   { key: 'studio', href: '/app/studio', icon: Sparkles, group: 'workspace' },
   { key: 'models', href: '/app/models', icon: Layers, group: 'workspace' },

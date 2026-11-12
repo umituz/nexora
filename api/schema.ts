@@ -480,6 +480,39 @@ export const automationRuns = pgTable(
   (t) => [index(tn('automation_runs_automation_idx')).on(t.automationId, t.createdAt)],
 )
 
+export const watchItems = pgTable(
+  tn('watch_items'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    keyword: text('keyword').notNull(),
+    lastScanAt: timestamp('last_scan_at', { withTimezone: true }),
+    ...trio(),
+  },
+  (t) => [index(tn('watch_items_user_idx')).on(t.userId, t.createdAt)],
+)
+
+export const watchScans = pgTable(
+  tn('watch_scans'),
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => baUser.id),
+    itemId: text('item_id')
+      .notNull()
+      .references(() => watchItems.id),
+    researchId: text('research_id')
+      .notNull()
+      .references(() => researchRuns.id),
+    keyword: text('keyword').notNull(),
+    ...trio(),
+  },
+  (t) => [index(tn('watch_scans_user_idx')).on(t.userId, t.createdAt)],
+)
+
 export const activity = pgTable(
   tn('activity'),
   {

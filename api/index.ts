@@ -18,6 +18,7 @@ import { usageRouter } from './routes/usage'
 import { apiKeysRouter } from './routes/api-keys'
 import { webhooksRouter } from './routes/webhooks'
 import { automationsRouter } from './routes/automations'
+import { watchlistRouter } from './routes/watchlist'
 import { requestsRouter } from './routes/requests'
 import { activityRouter } from './routes/activity'
 import { notificationsRouter } from './routes/notifications'
@@ -50,6 +51,7 @@ export default createApi<Env>({
     ['/api-keys', apiKeysRouter],
     ['/webhooks', webhooksRouter],
     ['/automations', automationsRouter],
+    ['/watchlist', watchlistRouter],
     ['/requests', requestsRouter],
     ['/activity', activityRouter],
     ['/notifications', notificationsRouter],

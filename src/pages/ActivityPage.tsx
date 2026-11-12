@@ -19,6 +19,7 @@ const ACTION_TARGETS = [
   'api_key',
   'webhook',
   'automation',
+  'watchlist',
   'settings',
 ] as const
 

@@ -140,6 +140,24 @@ export interface ResearchRunRow {
   createdAt: string
 }
 
+export interface WatchItemRow {
+  id: string
+  keyword: string
+  lastScanAt: string | null
+  createdAt: string
+}
+
+export interface WatchScanRow {
+  id: string
+  keyword: string
+  researchId: string
+  status: 'running' | 'ready' | 'failed'
+  report: string | null
+  sources: { title: string; url: string; snippet: string }[]
+  errorMessage: string | null
+  createdAt: string
+}
+
 export interface CodeArtifactRow {
   id: string
   conversationId: string | null
