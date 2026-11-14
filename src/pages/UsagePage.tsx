@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { Minus, TrendingDown, TrendingUp } from 'lucide-react'
+import { BarChart3, CreditCard, Layers, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 import { usePageTitle } from '@umituz/web-dashboard'
 import { BarChart, Donut, HBars, LineChart } from '@umituz/web-design-system/charts'
 import { apiFetch } from '@umituz/web-hono/client'
@@ -13,6 +13,7 @@ import type {
 } from '@shared/ai/contracts'
 import { useCollection } from '@/data/store'
 import { useT } from '@/i18n'
+import { SubscriptionOptimizer } from '@/components/usage/SubscriptionOptimizer'
 
 const RANGES = [7, 30, 90] as const
 
@@ -162,6 +163,7 @@ function ErrorRateCell({ value }: { value: number | null }): ReactNode {
 
 export default function UsagePage(): ReactNode {
   const t = useT()
+  const [usageTab, setUsageTab] = useState<'analytics' | 'subscriptions' | 'breakdown'>('analytics')
   const [days, setDays] = useState<number>(30)
   const [analytics, setAnalytics] = useState<UsageAnalytics | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -219,29 +221,75 @@ export default function UsagePage(): ReactNode {
   return (
     <div className="udb-fill-page overflow-y-auto">
       <div className="mx-auto w-full max-w-6xl space-y-8 px-1">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{t('usage.title')}</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('usage.title')}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{t('usage.subtitle')}</p>
           </div>
-          <div className="flex gap-1 rounded-lg border border-border bg-card p-1" role="group" aria-label={t('usage.rangeLabel')}>
-            {RANGES.map((range) => (
-              <button
-                key={range}
-                type="button"
-                onClick={() => setDays(range)}
-                aria-pressed={days === range}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  days === range
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                }`}
-              >
-                {t('usage.rangeDays', { days: range })}
-              </button>
-            ))}
+
+          <div className="flex items-center rounded-xl border border-border bg-card p-1">
+            <button
+              type="button"
+              onClick={() => setUsageTab('analytics')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                usageTab === 'analytics'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <BarChart3 size={13} />
+              <span>Telemetry & Trends</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setUsageTab('subscriptions')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                usageTab === 'subscriptions'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <CreditCard size={13} />
+              <span>AI Subscriptions & Leaks</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setUsageTab('breakdown')}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                usageTab === 'breakdown'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Layers size={13} />
+              <span>All-Time Breakdown</span>
+            </button>
           </div>
         </div>
+
+        {usageTab === 'subscriptions' && <SubscriptionOptimizer />}
+
+        {usageTab === 'analytics' && (
+          <>
+            <div className="flex justify-end">
+              <div className="flex gap-1 rounded-lg border border-border bg-card p-1" role="group" aria-label={t('usage.rangeLabel')}>
+                {RANGES.map((range) => (
+                  <button
+                    key={range}
+                    type="button"
+                    onClick={() => setDays(range)}
+                    aria-pressed={days === range}
+                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      days === range
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    }`}
+                  >
+                    {t('usage.rangeDays', { days: range })}
+                  </button>
+                ))}
+              </div>
+            </div>
 
         {loadError ? (
           <div className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-card p-8 text-center">
@@ -462,14 +510,17 @@ export default function UsagePage(): ReactNode {
             </section>
           </>
         )}
+          </>
+        )}
 
-        <section className="space-y-6 border-t border-border pt-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-lg font-semibold">{t('usage.allTime.title')}</h2>
-            <p className="text-xs text-muted-foreground">
-              {usage.requests} {t('usage.requests').toLowerCase()} · {formatCost(usage.costMicros)}
-            </p>
-          </div>
+        {usageTab === 'breakdown' && (
+          <section className="space-y-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-lg font-semibold">{t('usage.allTime.title')}</h2>
+              <p className="text-xs text-muted-foreground">
+                {usage.requests} {t('usage.requests').toLowerCase()} · {formatCost(usage.costMicros)}
+              </p>
+            </div>
 
           {hasAllTimeRows ? (
             <>
@@ -554,6 +605,7 @@ export default function UsagePage(): ReactNode {
             </p>
           )}
         </section>
+        )}
       </div>
     </div>
   )

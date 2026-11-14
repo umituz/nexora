@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate, useLocation } from 'react-router'
 import { DashboardLayout } from '@umituz/web-dashboard'
 import type {
@@ -11,10 +11,11 @@ import type {
 import { useSession } from '@umituz/web-auth/session'
 import { apiFetch } from '@umituz/web-hono/client'
 import { useDesignSystem } from '@umituz/web-design-system/providers'
-import { User as UserIcon } from 'lucide-react'
+import { Brain, User as UserIcon } from 'lucide-react'
 import { BRAND } from '@/brand'
 import { useT } from '@/i18n'
 import { useHydration, useCollection, store } from '@/data/store'
+import { FocusTimerModal } from '@/components/focus/FocusTimerModal'
 import { NOTIFICATIONS_ROUTE, NAV_GROUPS, NAV_ITEMS } from './navigation'
 
 function PageFallback() {
@@ -32,6 +33,7 @@ export default function AppLayout() {
   const t = useT()
   const { mode, toggleMode } = useDesignSystem()
   const location = useLocation()
+  const [focusOpen, setFocusOpen] = useState(false)
 
   useEffect(() => {
     if (hydration.status !== 'ready') return
@@ -152,20 +154,36 @@ export default function AppLayout() {
   }
 
   return (
-    <DashboardLayout
-      config={config}
-      labels={labels}
-      user={user}
-      onLogout={async () => {
-        await logout()
-      }}
-      notifications={bellNotifications}
-      onMarkAllRead={() => void markAllRead()}
-      onDismissNotification={(id) => void dismissNotification(id)}
-      loginRoute="/login"
-      theme={mode}
-      onToggleTheme={toggleMode}
-      contentFallback={<PageFallback />}
-    />
+    <>
+      <DashboardLayout
+        config={config}
+        labels={labels}
+        user={user}
+        onLogout={async () => {
+          await logout()
+        }}
+        notifications={bellNotifications}
+        onMarkAllRead={() => void markAllRead()}
+        onDismissNotification={(id) => void dismissNotification(id)}
+        loginRoute="/login"
+        theme={mode}
+        onToggleTheme={toggleMode}
+        contentFallback={<PageFallback />}
+      />
+
+      {/* Floating Deep Work & Focus Timer Trigger (OpenClaw inspired) */}
+      <button
+        type="button"
+        onClick={() => setFocusOpen(true)}
+        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-primary/30 bg-card/95 px-3.5 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur-md transition-all hover:border-primary hover:shadow-primary/20"
+        title="Open Deep Work Focus Timer"
+      >
+        <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+        <Brain size={14} className="text-primary" />
+        <span>Deep Work Timer</span>
+      </button>
+
+      <FocusTimerModal isOpen={focusOpen} onClose={() => setFocusOpen(false)} />
+    </>
   )
 }

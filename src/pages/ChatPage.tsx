@@ -15,6 +15,8 @@ import { Composer } from '@/components/chat/Composer'
 import { ConversationList } from '@/components/chat/ConversationList'
 import { MessageBubble, type ChatMessageView } from '@/components/chat/MessageBubble'
 import { ModelPicker } from '@/components/chat/ModelPicker'
+import { PromptTemplatesRow } from '@/components/chat/PromptTemplatesRow'
+import { PersonaPicker } from '@/components/chat/PersonaPicker'
 import { useT } from '@/i18n'
 
 function toView(row: MessageRow): ChatMessageView {
@@ -55,6 +57,7 @@ export default function ChatPage(): ReactNode {
   const [resolving, setResolving] = useState(false)
   const [editing, setEditing] = useState<ChatMessageView | null>(null)
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
+  const [personaId, setPersonaId] = useState<string>('general')
   const handleRef = useRef<StreamHandle | null>(null)
   const streamingConversationRef = useRef<string | null>(null)
   const modelParamConsumedRef = useRef(false)
@@ -454,6 +457,7 @@ export default function ChatPage(): ReactNode {
                 />
               </div>
             )}
+            <PersonaPicker value={personaId} onChange={setPersonaId} disabled={streaming} />
             <div className="w-56">
               <ModelPicker models={models} value={selectedModelId} onChange={setSelectedModelId} disabled={streaming} />
             </div>
@@ -463,12 +467,13 @@ export default function ChatPage(): ReactNode {
         <div ref={threadRef} className="flex-1 space-y-6 overflow-y-auto px-4 py-6">
           {loading && <p className="text-center text-sm text-muted-foreground">{t('common.loading')}</p>}
           {!loading && messages.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <span className="bg-gradient-to-br from-[#2563eb] to-[#7c3aed] text-white mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold">
+            <div className="flex h-full flex-col items-center justify-center text-center py-6">
+              <span className="bg-gradient-to-br from-[#2563eb] to-[#7c3aed] text-white mb-3 flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold shadow-sm">
                 N
               </span>
               <h2 className="text-lg font-semibold">{t('chat.emptyTitle')}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{t('chat.emptyHint')}</p>
+              <p className="mt-1 text-xs text-muted-foreground max-w-sm mb-6">{t('chat.emptyHint')}</p>
+              <PromptTemplatesRow onSelectPrompt={(promptText) => setInput(promptText)} />
             </div>
           )}
           {messages.map((message, index) => (

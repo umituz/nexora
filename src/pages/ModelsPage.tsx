@@ -4,9 +4,12 @@ import { Link } from 'react-router'
 import {
   Braces,
   Brain,
+  Compass,
   Crown,
   Eye,
+  GitCompare,
   Image as ImageIcon,
+  Layers,
   MessagesSquare,
   Search,
   Sparkles,
@@ -21,7 +24,11 @@ import { apiFetch } from '@umituz/web-hono/client'
 import type { ModelUsageStats, PublicModel } from '@shared/ai/contracts'
 import { useCollection } from '@/data/store'
 import { useT } from '@/i18n'
+import { ModelComparator } from '@/components/models/ModelComparator'
+import { LeaderboardView } from '@/components/models/LeaderboardView'
+import { UseCaseMatcher } from '@/components/models/UseCaseMatcher'
 
+type ModelsTab = 'catalog' | 'compare' | 'leaderboard' | 'usecases'
 type CapabilityFilter = 'all' | 'reasoning' | 'vision' | 'tools' | 'structured'
 type SortKey = 'usage' | 'name' | 'context' | 'cost'
 
@@ -197,6 +204,7 @@ function ModelCard({
 export default function ModelsPage(): ReactNode {
   const t = useT()
   const models = useCollection('models')
+  const [activeTab, setActiveTab] = useState<ModelsTab>('catalog')
   const [query, setQuery] = useState('')
   const [capability, setCapability] = useState<CapabilityFilter>('all')
   const [provider, setProvider] = useState('all')
@@ -277,110 +285,172 @@ export default function ModelsPage(): ReactNode {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t('models.title')}</h1>
-        <p className="text-sm text-muted-foreground">{t('models.subtitle')}</p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{t('models.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('models.subtitle')}</p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center rounded-xl border border-border bg-card p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('catalog')}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              activeTab === 'catalog'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Layers size={13} />
+            <span>Catalog</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('compare')}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              activeTab === 'compare'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <GitCompare size={13} />
+            <span>Compare Models</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('leaderboard')}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              activeTab === 'leaderboard'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Trophy size={13} />
+            <span>Leaderboard</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('usecases')}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+              activeTab === 'usecases'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Compass size={13} />
+            <span>Use Cases</span>
+          </button>
+        </div>
       </header>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          placeholder={t('models.searchPlaceholder')}
-          aria-label={t('models.searchPlaceholder')}
-          clearable
-          className="w-full sm:w-64"
-        />
-        <Segmented
-          options={CAP_FILTERS.map((filter) => ({
-            value: filter.key,
-            label: t(filter.labelKey),
-            icon: <filter.icon aria-hidden="true" />,
-          }))}
-          value={capability}
-          onChange={setCapability}
-          aria-label={t('models.filter.label')}
-        />
-        <FilterSelect
-          value={provider}
-          onChange={setProvider}
-          options={providerOptions}
-          allLabel={t('models.allProviders')}
-          ariaLabel={t('models.allProviders')}
-        />
-        <FilterSelect
-          value={sort}
-          onChange={(value) => setSort(value as SortKey)}
-          options={sortOptions}
-          allLabel={t('models.sort.label')}
-          ariaLabel={t('models.sort.label')}
-          className="ml-auto"
-        />
-      </div>
+      {activeTab === 'compare' && <ModelComparator models={models} />}
+      {activeTab === 'leaderboard' && <LeaderboardView />}
+      {activeTab === 'usecases' && <UseCaseMatcher models={models} />}
 
-      {topModels.length > 1 && (
-        <section aria-label={t('models.top.title')} className="rounded-xl border border-border bg-card p-4">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Trophy size={14} className="text-primary" aria-hidden="true" />
-            {t('models.top.title')}
-          </h2>
-          <ol className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-            {topModels.map(({ model, stats }, index) => (
-              <li
-                key={model.id}
-                className={`flex items-center gap-3 rounded-lg border p-2.5 ${index === 0 ? 'border-primary/50' : 'border-border'}`}
-              >
-                <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    index === 0 ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
-                  }`}
-                >
-                  {index === 0 ? <Crown size={14} aria-hidden="true" /> : `#${index + 1}`}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <Link
-                    to={`/app/chat?model=${model.id}`}
-                    className="block truncate text-sm font-medium text-foreground hover:text-primary"
+      {activeTab === 'catalog' && (
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder={t('models.searchPlaceholder')}
+              aria-label={t('models.searchPlaceholder')}
+              clearable
+              className="w-full sm:w-64"
+            />
+            <Segmented
+              options={CAP_FILTERS.map((filter) => ({
+                value: filter.key,
+                label: t(filter.labelKey),
+                icon: <filter.icon aria-hidden="true" />,
+              }))}
+              value={capability}
+              onChange={setCapability}
+              aria-label={t('models.filter.label')}
+            />
+            <FilterSelect
+              value={provider}
+              onChange={setProvider}
+              options={providerOptions}
+              allLabel={t('models.allProviders')}
+              ariaLabel={t('models.allProviders')}
+            />
+            <FilterSelect
+              value={sort}
+              onChange={(value) => setSort(value as SortKey)}
+              options={sortOptions}
+              allLabel={t('models.sort.label')}
+              ariaLabel={t('models.sort.label')}
+              className="ml-auto"
+            />
+          </div>
+
+          {topModels.length > 1 && (
+            <section aria-label={t('models.top.title')} className="rounded-xl border border-border bg-card p-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Trophy size={14} className="text-primary" aria-hidden="true" />
+                {t('models.top.title')}
+              </h2>
+              <ol className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {topModels.map(({ model, stats }, index) => (
+                  <li
+                    key={model.id}
+                    className={`flex items-center gap-3 rounded-lg border p-2.5 ${index === 0 ? 'border-primary/50' : 'border-border'}`}
                   >
-                    {model.displayName}
-                  </Link>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {t('models.top.line', { requests: stats.requests, tokens: formatTokens(stats.inputTokens + stats.outputTokens), cost: formatCost(stats.costMicros) })}
-                  </p>
-                </div>
-                {stats.avgDurationMs > 0 && (
-                  <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                    <Timer size={12} aria-hidden="true" />
-                    {`${(stats.avgDurationMs / 1000).toFixed(1)}s`}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
+                    <span
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        index === 0 ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {index === 0 ? <Crown size={14} aria-hidden="true" /> : `#${index + 1}`}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        to={`/app/chat?model=${model.id}`}
+                        className="block truncate text-sm font-medium text-foreground hover:text-primary"
+                      >
+                        {model.displayName}
+                      </Link>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {t('models.top.line', { requests: stats.requests, tokens: formatTokens(stats.inputTokens + stats.outputTokens), cost: formatCost(stats.costMicros) })}
+                      </p>
+                    </div>
+                    {stats.avgDurationMs > 0 && (
+                      <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                        <Timer size={12} aria-hidden="true" />
+                        {`${(stats.avgDurationMs / 1000).toFixed(1)}s`}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
 
-      {models.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          {t('models.empty')}
-        </p>
-      ) : filtered.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          {t('models.noMatches')}
-        </p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {filtered.map((model) => (
-            <ModelCard key={model.id} model={model} stats={statsByName.get(model.displayName)} t={t} />
-          ))}
-        </div>
-      )}
+          {models.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              {t('models.empty')}
+            </p>
+          ) : filtered.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              {t('models.noMatches')}
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+              {filtered.map((model) => (
+                <ModelCard key={model.id} model={model} stats={statsByName.get(model.displayName)} t={t} />
+              ))}
+            </div>
+          )}
 
-      {statsRows === null && (
-        <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground" role="status">
-          <Search size={12} aria-hidden="true" className="animate-pulse" />
-          {t('models.loadingStats')}
-        </p>
+          {statsRows === null && (
+            <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground" role="status">
+              <Search size={12} aria-hidden="true" className="animate-pulse" />
+              {t('models.loadingStats')}
+            </p>
+          )}
+        </>
       )}
     </div>
   )
