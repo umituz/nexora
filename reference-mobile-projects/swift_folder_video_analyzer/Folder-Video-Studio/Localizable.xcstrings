@@ -1,0 +1,1116 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "L10n.App.Name" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder Studio"
+          }
+        }
+      }
+    },
+    "L10n.App.Version" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version 1.0.0"
+          }
+        }
+      }
+    },
+    "L10n.App.Tagline" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transform your folders into stunning videos with Remotion."
+          }
+        }
+      }
+    },
+    "L10n.Sidebar.Dashboard" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dashboard"
+          }
+        }
+      }
+    },
+    "L10n.Sidebar.Projects" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projects"
+          }
+        }
+      }
+    },
+    "L10n.Sidebar.Templates" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Templates"
+          }
+        }
+      }
+    },
+    "L10n.Sidebar.Settings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "L10n.Sidebar.OpenFolder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Folder"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Hero.TitleDefault" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transform Your Folder Into Video"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Hero.TitleAnalyzing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyzing..."
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Hero.SubtitleDefault" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a folder, we'll analyze its contents and generate videos with Remotion."
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Hero.SubtitleAnalyzing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning folder contents..."
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Hero.SubtitleReady" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder analyzed, ready to generate video!"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Hero.SelectFolder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Folder"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Hero.FolderName" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Stats.TotalProjects" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total Projects"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Stats.Completed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Stats.Processing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Stats.Drafts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drafts"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Sections.RecentProjects" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Projects"
+          }
+        }
+      }
+    },
+    "L10n.Dashboard.Sections.FolderAnalysis" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder Analysis"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.NoFolderSelected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No folder selected"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.SelectFolderHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Content analysis will appear here when you select a folder."
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.SelectFolder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Folder"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.Stats.Files" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.Stats.Size" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.Stats.Depth" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Depth"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.Sections.FileTypes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File Types"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.Sections.TopExtensions" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Top Extensions"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.Actions.SelectTemplate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Template & Generate Video"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.TemplatePicker.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Template"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.TemplatePicker.Subtitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a style"
+          }
+        }
+      }
+    },
+    "L10n.FolderAnalysis.TemplatePicker.SubtitleForFolder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a style for %@"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Projects"
+          }
+        }
+      }
+    },
+    "L10n.Projects.NoProjects" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No projects yet"
+          }
+        }
+      }
+    },
+    "L10n.Projects.NoProjectsHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyze a folder from Dashboard and select a template to create a project."
+          }
+        }
+      }
+    },
+    "L10n.Projects.Delete" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
+    },
+    "L10n.Projects.SelectProject" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Project"
+          }
+        }
+      }
+    },
+    "L10n.Projects.SelectProjectHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a project from the left list to view its details."
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Hero.Render" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Hero.Rendering" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendering..."
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Hero.Edit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Hero.Play" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Info.Folder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Info.Created" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Info.Duration" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Duration"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Info.Template" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template Parameters"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Edit" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.TitleLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.SubtitleLabel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subtitle"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Animation" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animation"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Font" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Font"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Background" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Accent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accent"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Empty" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "—"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Background.Dark" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Background.Light" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Background.Gradient" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gradient"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Params.Background.Glass" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glass Effect"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Render.Progress" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render Progress"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Render.Log" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render Log"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Render.FrameProgress" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frame: %d / %d"
+          }
+        }
+      }
+    },
+    "L10n.Projects.Detail.Render.OpenInFinder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in Finder"
+          }
+        }
+      }
+    },
+    "L10n.Render.Start" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Render"
+          }
+        }
+      }
+    },
+    "L10n.Render.Starting" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting..."
+          }
+        }
+      }
+    },
+    "L10n.Render.Cancel" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
+    "L10n.Render.ShowInFinder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
+          }
+        }
+      }
+    },
+    "L10n.Render.Play" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play"
+          }
+        }
+      }
+    },
+    "L10n.Render.Sheet.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Render"
+          }
+        }
+      }
+    },
+    "L10n.Render.Sheet.Settings" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render Settings"
+          }
+        }
+      }
+    },
+    "L10n.Render.Sheet.Progress" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress"
+          }
+        }
+      }
+    },
+    "L10n.Render.Sheet.Log" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render Log"
+          }
+        }
+      }
+    },
+    "L10n.Render.Sheet.Completed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed"
+          }
+        }
+      }
+    },
+    "L10n.Render.Sheet.Processing" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing..."
+          }
+        }
+      }
+    },
+    "L10n.Render.Settings.Resolution" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolution"
+          }
+        }
+      }
+    },
+    "L10n.Render.Settings.FPS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FPS"
+          }
+        }
+      }
+    },
+    "L10n.Render.Settings.Quality" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quality"
+          }
+        }
+      }
+    },
+    "L10n.Render.Settings.Codec" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codec"
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.Started" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render started: %@"
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.Folder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder: %@"
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.Template" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Template: %@"
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.Resolution" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resolution: %@"
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.FPS" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FPS: %@"
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.DemoModeHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For actual rendering, configure the CLI path in Settings > Remotion."
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.FrameProgress" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frame %d/%d — %d%%"
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.Output" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output: %@"
+          }
+        }
+      }
+    },
+    "L10n.Render.Log.ProjectTitle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title: %@"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Sections.Remotion" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remotion"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Sections.Output" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Sections.Render" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Sections.About" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Remotion.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remotion Configuration"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Remotion.CliPath" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remotion CLI Path"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Remotion.StatusReady" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remotion Ready"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Remotion.VerifyPath" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verify Path"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Remotion.InstallGuide" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installation Guide"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Remotion.InstallHint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Run the following command in Terminal to install Remotion:"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Output.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output Settings"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Output.Folder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output Folder"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Output.Change" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Output.OpenAfterRender" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open After Render"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Output.ConcurrentRenders" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Concurrent Renders"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Render.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Render Settings"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Render.DefaultResolution" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Resolution"
+          }
+        }
+      }
+    },
+    "L10n.Settings.Render.DefaultFps" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default FPS"
+          }
+        }
+      }
+    },
+    "L10n.Settings.About.Title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder Studio"
+          }
+        }
+      }
+    },
+    "L10n.Settings.About.Description" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transform your folders into stunning videos with Remotion."
+          }
+        }
+      }
+    },
+    "L10n.FilePicker.SelectFolder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select folder to analyze"
+          }
+        }
+      }
+    },
+    "L10n.FilePicker.Choose" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

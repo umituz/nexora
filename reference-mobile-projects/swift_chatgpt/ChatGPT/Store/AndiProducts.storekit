@@ -1,0 +1,42 @@
+{
+  "identifier" : "F8A1B2C3-D4E5-6789-ABCD-EF0123456789",
+  "type" : "File",
+  "version" : 3,
+  "subscriptionGroups" : [
+    {
+      "id" : "21084000",
+      "localizations" : [
+        {
+          "description" : "Andi AI Pro subscription",
+          "displayName" : "Andi Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Andi Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "A1B2C3D4-0001-0001-0001-000000000001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlimited AI conversations and premium features",
+              "displayName" : "Andi Pro Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.kotik.Andi.Monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Monthly",
+          "subscriptionGroupID" : "21084000",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        }
+      ]
+    }
+  ]
+}
