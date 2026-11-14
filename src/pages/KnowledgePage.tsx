@@ -3,10 +3,14 @@ import type { ReactNode } from 'react'
 import { ApiClientError, apiFetch } from '@umituz/web-hono/client'
 import { usePageTitle } from '@umituz/web-dashboard'
 import { Button, Input, Textarea } from '@umituz/web-design-system'
+import { Segmented } from '@umituz/web-design-system/molecules'
 import { Search } from 'lucide-react'
 import type { KnowledgeHitRow, TaskRow } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
 import { useT } from '@/i18n'
+import { DocumentVault } from '@/components/knowledge/DocumentVault'
+
+type KnowledgePageTab = 'vault' | 'raw_index'
 
 const TASK_POLL_MS = 1500
 
@@ -25,6 +29,7 @@ export default function KnowledgePage(): ReactNode {
   const [searching, setSearching] = useState(false)
   const [hits, setHits] = useState<KnowledgeHitRow[] | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
+  const [pageTab, setPageTab] = useState<KnowledgePageTab>('vault')
 
   usePageTitle(t('nav.items.knowledge'))
 
@@ -99,23 +104,45 @@ export default function KnowledgePage(): ReactNode {
 
   return (
     <div className="udb-fill-page overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
-        <div className="flex items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{t('knowledge.title')}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{t('knowledge.subtitle')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Explore your organized corporate knowledge vault or ingest raw text for pgvector KNN embeddings.
+            </p>
           </div>
-          {!showForm && (
-            <Button
-              onClick={() => {
-                setShowForm(true)
-                setError(null)
-              }}
-            >
-              {t('knowledge.new')}
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            <Segmented
+              value={pageTab}
+              onChange={(val) => setPageTab(val as KnowledgePageTab)}
+              options={[
+                { value: 'vault', label: 'Document Vault & Catalog' },
+                { value: 'raw_index', label: 'Vector Ingestion & Raw Index' },
+              ]}
+            />
+            {pageTab === 'raw_index' && !showForm && (
+              <Button
+                onClick={() => {
+                  setShowForm(true)
+                  setError(null)
+                }}
+              >
+                {t('knowledge.new')}
+              </Button>
+            )}
+          </div>
         </div>
+
+        {pageTab === 'vault' ? (
+          <DocumentVault
+            onNewDocument={() => {
+              setPageTab('raw_index')
+              setShowForm(true)
+            }}
+          />
+        ) : (
+          <div className="mx-auto max-w-3xl space-y-6">
 
         {showForm && (
           <div className="space-y-3 rounded-xl border border-border bg-card p-5">
@@ -224,6 +251,8 @@ export default function KnowledgePage(): ReactNode {
                 ))}
               </div>
             )}
+          </div>
+        )}
           </div>
         )}
       </div>

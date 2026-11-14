@@ -11,6 +11,9 @@ import type { AutomationActionRow, AutomationRow, AutomationRunRow, AutomationSe
 import { store, useCollection } from '@/data/store'
 import { useT } from '@/i18n'
 import { useTimeAgo } from '@/lib/format'
+import { WorkflowCanvas } from '@/components/workflows/WorkflowCanvas'
+
+type AutomationsTab = 'workflows' | 'triggers'
 
 const TRIGGER_GROUPS: { labelKey: string; events: readonly string[] }[] = [
   {
@@ -57,6 +60,7 @@ export default function AutomationsPage(): ReactNode {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [runs, setRuns] = useState<Record<string, AutomationRunRow[]>>({})
   const [testResult, setTestResult] = useState<Record<string, boolean>>({})
+  const [pageTab, setPageTab] = useState<AutomationsTab>('workflows')
   usePageTitle(t('nav.items.automations'))
 
   const triggerOptions: NativeSelectOption[] = TRIGGER_GROUPS.flatMap((group) =>
@@ -168,16 +172,33 @@ export default function AutomationsPage(): ReactNode {
 
   return (
     <div className="udb-fill-page overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
-        <div className="flex items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{t('automations.title')}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{t('automations.subtitle')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Orchestrate autonomous multi-phase AI workflows or configure reactive event-driven triggers.
+            </p>
           </div>
-          {draft === null && (
-            <Button onClick={() => setDraft(EMPTY_DRAFT)}>{t('automations.new')}</Button>
-          )}
+          <div className="flex items-center gap-3">
+            <Segmented
+              value={pageTab}
+              onChange={(val) => setPageTab(val as AutomationsTab)}
+              options={[
+                { value: 'workflows', label: 'AI Workflow Pipelines' },
+                { value: 'triggers', label: 'Event Webhooks & Triggers' },
+              ]}
+            />
+            {pageTab === 'triggers' && draft === null && (
+              <Button onClick={() => setDraft(EMPTY_DRAFT)}>{t('automations.new')}</Button>
+            )}
+          </div>
         </div>
+
+        {pageTab === 'workflows' ? (
+          <WorkflowCanvas />
+        ) : (
+          <div className="mx-auto max-w-3xl space-y-6">
 
         {draft !== null && (
           <div className="space-y-4 rounded-xl border border-border bg-card p-5">
@@ -381,6 +402,8 @@ export default function AutomationsPage(): ReactNode {
             )
           })}
         </div>
+          </div>
+        )}
       </div>
     </div>
   )

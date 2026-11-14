@@ -9,6 +9,7 @@ import type { UsageAnalytics, UsageHeatmap } from '@shared/ai/contracts'
 import { useCollection } from '@/data/store'
 import { useT } from '@/i18n'
 import { formatCompact, formatCost, formatDayLabel, useTimeAgo } from '@/lib/format'
+import { ExecutiveIntelligence } from '@/components/analytics/ExecutiveIntelligence'
 
 function formatTokens(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
@@ -244,6 +245,8 @@ export default function OverviewPage(): ReactNode {
             to="/app/research"
           />
         </div>
+
+        <ExecutiveIntelligence />
 
         {analytics ? (
           <section className="rounded-xl border border-border bg-card p-4 sm:p-5">

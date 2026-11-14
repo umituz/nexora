@@ -4,11 +4,15 @@ import { apiFetch } from '@umituz/web-hono/client'
 import { usePageTitle } from '@umituz/web-dashboard'
 import { Button, Input, NativeSelect, Textarea } from '@umituz/web-design-system'
 import type { NativeSelectOption } from '@umituz/web-design-system'
+import { Segmented } from '@umituz/web-design-system/molecules'
 import { Trash2, Wrench } from 'lucide-react'
 import type { AgentRow, ToolRow } from '@/data/chatTypes'
 import { AGENT_TEMPLATES } from '@/data/agentTemplates'
 import { store, useCollection } from '@/data/store'
 import { useT } from '@/i18n'
+import { SquadHub } from '@/components/team/SquadHub'
+
+type AgentsPageTab = 'squad' | 'blueprints'
 
 interface AgentDraft {
   name: string
@@ -28,6 +32,7 @@ export default function AgentsPage(): ReactNode {
   const [draft, setDraft] = useState<AgentDraft | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [pageTab, setPageTab] = useState<AgentsPageTab>('squad')
   usePageTitle(t('nav.items.agents'))
 
   const chatModels = models.filter((model) => model.outputTypes.includes('text'))
@@ -115,14 +120,33 @@ export default function AgentsPage(): ReactNode {
 
   return (
     <div className="udb-fill-page overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
-        <div className="flex items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{t('agents.title')}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{t('agents.subtitle')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Coordinate autonomous multi-agent squads, allocate workloads, or customize agent system blueprints.
+            </p>
           </div>
-          {draft === null && <Button onClick={startCreate}>{t('agents.new')}</Button>}
+          <div className="flex items-center gap-3">
+            <Segmented
+              value={pageTab}
+              onChange={(val) => setPageTab(val as AgentsPageTab)}
+              options={[
+                { value: 'squad', label: 'Squad & Team Operations' },
+                { value: 'blueprints', label: 'Agent Blueprints' },
+              ]}
+            />
+            {pageTab === 'blueprints' && draft === null && (
+              <Button onClick={startCreate}>{t('agents.new')}</Button>
+            )}
+          </div>
         </div>
+
+        {pageTab === 'squad' ? (
+          <SquadHub />
+        ) : (
+          <div className="mx-auto max-w-3xl space-y-6">
 
         {draft !== null && (
           <div className="space-y-3 rounded-xl border border-border bg-card p-5">
@@ -273,6 +297,8 @@ export default function AgentsPage(): ReactNode {
                 </div>
               ))}
             </div>
+          </div>
+        )}
           </div>
         )}
       </div>

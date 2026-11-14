@@ -1,20 +1,25 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { apiFetch } from '@umituz/web-hono/client'
 import { usePageTitle } from '@umituz/web-dashboard'
 import { NotificationsPage as WorkspaceNotificationsPage } from '@umituz/web-dashboard/notifications/components'
 import { NotificationsProvider } from '@umituz/web-dashboard/notifications'
 import type { NotificationRecord } from '@umituz/web-dashboard/notifications'
+import { Segmented } from '@umituz/web-design-system/molecules'
 import { BookOpen, CircleAlert, Telescope } from 'lucide-react'
 import type { NotificationRow } from '@/data/chatTypes'
 import { store, useCollection } from '@/data/store'
 import { useT } from '@/i18n'
 import { useTimeAgo } from '@/lib/format'
+import { DispatchDesk } from '@/components/dispatch/DispatchDesk'
+
+type NotificationsTab = 'dispatch' | 'system'
 
 export default function NotificationsPage(): ReactNode {
   const t = useT()
   const formatAgo = useTimeAgo()
   const notifications = useCollection('notifications')
+  const [tab, setTab] = useState<NotificationsTab>('dispatch')
   usePageTitle(t('nav.items.notifications'))
 
   const records = useMemo<NotificationRecord[]>(
@@ -72,33 +77,56 @@ export default function NotificationsPage(): ReactNode {
 
   return (
     <div className="udb-fill-page overflow-y-auto">
-      <div className="mx-auto w-full max-w-3xl">
-        <NotificationsProvider
-          notifications={records}
-          onMarkAllRead={() => void markAllRead()}
-          onMarkRead={(id) => void markRead(id)}
-          onDismiss={(id) => void dismiss(id)}
-        >
-          <WorkspaceNotificationsPage
-            typeMeta={typeMeta}
-            attentionLabel={t('notifications.attention')}
-            timeFormatter={formatAgo}
-            labels={{
-              title: t('notifications.title'),
-              description: t('notifications.subtitle'),
-              allLabel: t('notifications.all'),
-              unreadLabel: t('notifications.unread'),
-              markAllLabel: t('shell.markAllRead'),
-              emptyTitle: t('notifications.emptyTitle'),
-              emptyUnreadTitle: t('notifications.emptyUnreadTitle'),
-              emptyAttentionTitle: t('notifications.emptyAttentionTitle'),
-              emptyDescription: t('notifications.emptyDescription'),
-              markReadLabel: t('notifications.markRead'),
-              dismissLabel: t('notifications.dismiss'),
-              viewLabel: t('notifications.view'),
-            }}
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">AI Communications & Signals</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Triage incoming messages, RFC review requests, and FinOps invoices with instant AI actions.
+            </p>
+          </div>
+          <Segmented
+            value={tab}
+            onChange={(val) => setTab(val as NotificationsTab)}
+            options={[
+              { value: 'dispatch', label: 'AI Dispatch & Communications' },
+              { value: 'system', label: 'System Alerts & Audit' },
+            ]}
           />
-        </NotificationsProvider>
+        </div>
+
+        {tab === 'dispatch' ? (
+          <DispatchDesk />
+        ) : (
+          <div className="mx-auto max-w-3xl">
+            <NotificationsProvider
+              notifications={records}
+              onMarkAllRead={() => void markAllRead()}
+              onMarkRead={(id) => void markRead(id)}
+              onDismiss={(id) => void dismiss(id)}
+            >
+              <WorkspaceNotificationsPage
+                typeMeta={typeMeta}
+                attentionLabel={t('notifications.attention')}
+                timeFormatter={formatAgo}
+                labels={{
+                  title: t('notifications.title'),
+                  description: t('notifications.subtitle'),
+                  allLabel: t('notifications.all'),
+                  unreadLabel: t('notifications.unread'),
+                  markAllLabel: t('shell.markAllRead'),
+                  emptyTitle: t('notifications.emptyTitle'),
+                  emptyUnreadTitle: t('notifications.emptyUnreadTitle'),
+                  emptyAttentionTitle: t('notifications.emptyAttentionTitle'),
+                  emptyDescription: t('notifications.emptyDescription'),
+                  markReadLabel: t('notifications.markRead'),
+                  dismissLabel: t('notifications.dismiss'),
+                  viewLabel: t('notifications.view'),
+                }}
+              />
+            </NotificationsProvider>
+          </div>
+        )}
       </div>
     </div>
   )
